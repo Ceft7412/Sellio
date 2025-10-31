@@ -1,0 +1,29 @@
+import * as React from "react";
+import Svg, { Path } from "react-native-svg";
+import { StyleProp, ViewStyle } from "react-native";
+
+interface GridFilledIconProps {
+  size?: number;
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+}
+
+export const GridFilledIcon: React.FC<GridFilledIconProps> = ({
+  size = 20, // Original SVG size is 20x20
+  color = "currentColor", // Uses 'currentColor' from the original fill attribute
+  style,
+}) => {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill={color} // Svg fill will apply to the path
+      style={style}
+      aria-label="GridFilled"
+      role="img"
+    >
+      <Path d="M7.5 11c.83 0 1.5.67 1.5 1.5v4c0 .83-.67 1.5-1.5 1.5h-4A1.5 1.5 0 0 1 2 16.5v-4c0-.83.67-1.5 1.5-1.5h4Zm9 0c.83 0 1.5.67 1.5 1.5v4c0 .83-.67 1.5-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4c0-.83.67-1.5 1.5-1.5h4Zm-9-9C8.33 2 9 2.67 9 3.5v4C9 8.33 8.33 9 7.5 9h-4A1.5 1.5 0 0 1 2 7.5v-4C2 2.67 2.67 2 3.5 2h4Zm9 0c.83 0 1.5.67 1.5 1.5v4c0 .83-.67 1.5-1.5 1.5h-4A1.5 1.5 0 0 1 11 7.5v-4c0-.83.67-1.5 1.5-1.5h4Z" />
+    </Svg>
+  );
+};
