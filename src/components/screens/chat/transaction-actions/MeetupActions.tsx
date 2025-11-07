@@ -31,6 +31,9 @@ interface MeetupActionsProps {
   buyerId: string;
   sellerId: string;
   onViewDetails?: () => void;
+  isBuyNow?: boolean; // Flag to distinguish between offer and buy now
+  isBid?: boolean; // Flag to distinguish bid transactions
+  onTransactionComplete?: (data: any) => void;
 }
 
 export const MeetupActions: React.FC<MeetupActionsProps> = ({
@@ -40,6 +43,9 @@ export const MeetupActions: React.FC<MeetupActionsProps> = ({
   buyerId,
   sellerId,
   onViewDetails,
+  isBuyNow = false,
+  isBid = false,
+  onTransactionComplete,
 }) => {
   const queryClient = useQueryClient();
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -86,6 +92,25 @@ export const MeetupActions: React.FC<MeetupActionsProps> = ({
     },
   });
 
+  // Mark as sold mutation
+  const markAsSoldMutation = useMutation({
+    mutationFn: () => transactionsAPI.markAsSold(transaction.id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: ["conversation", conversationId],
+      });
+      if (onTransactionComplete) {
+        onTransactionComplete(data.data.completionData);
+      }
+    },
+    onError: (error: any) => {
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Failed to mark as sold"
+      );
+    },
+  });
+
   const handleDateTimeConfirm = (date: Date) => {
     setSelectedDateTime(date);
     setShowDatePicker(false);
@@ -115,6 +140,21 @@ export const MeetupActions: React.FC<MeetupActionsProps> = ({
 
   const handleSetTimeLocation = () => {
     setShowDatePicker(true);
+  };
+
+  const handleMarkAsSold = () => {
+    Alert.alert(
+      "Mark as Sold",
+      "Are you sure you want to mark this transaction as sold? This will complete the transaction and mark the product as sold.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Mark as Sold",
+          style: "default",
+          onPress: () => markAsSoldMutation.mutate(),
+        },
+      ]
+    );
   };
 
   const handleAcceptMeetup = () => {
@@ -161,7 +201,11 @@ export const MeetupActions: React.FC<MeetupActionsProps> = ({
       <>
         <View className="px-4 py-3 bg-success-50 border-t border-success-200">
           <Text className="text-sm font-inter-medium text-success-700 mb-3">
-            Offer Accepted! Set up your meetup
+            {isBid
+              ? "Set up your meetup"
+              : isBuyNow
+              ? "Purchase Confirmed! Set up your meetup"
+              : "Offer Accepted! Set up your meetup"}
           </Text>
           <TouchableOpacity
             onPress={handleSetTimeLocation}
@@ -204,13 +248,6 @@ export const MeetupActions: React.FC<MeetupActionsProps> = ({
       ? transaction.meetupProposedBy === currentUserId
       : false;
 
-    console.log("MeetupActions Debug:", {
-      meetupProposedBy: transaction.meetupProposedBy,
-      currentUserId: currentUserId,
-      isProposer: isProposer,
-      meetupStatus: transaction.meetupStatus,
-    });
-
     return (
       <>
         <View className="px-4 py-3 bg-info-50 ">
@@ -234,7 +271,7 @@ export const MeetupActions: React.FC<MeetupActionsProps> = ({
             <TouchableOpacity
               onPress={handleSetTimeLocation}
               disabled={proposeMutation.isPending}
-              className="py-3 px-4 rounded-xl bg-info-500 items-center"
+              className="py-3 px-4 rounded-xl bg-primary-500 items-center"
             >
               {proposeMutation.isPending ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -294,16 +331,46 @@ export const MeetupActions: React.FC<MeetupActionsProps> = ({
 
   // Show View Details button when meetup is confirmed
   if (transaction.meetupStatus === "confirmed") {
+    const isSeller = currentUserId === sellerId;
+
     return (
-      <View className="px-4 py-3 bg-primary-50 border-t border-primary-200">
-        <TouchableOpacity
-          onPress={onViewDetails}
-          className="py-3 px-4 rounded-xl bg-primary-500 items-center"
-        >
-          <Text className="text-base font-inter-semibold text-white">
-            View Details
-          </Text>
-        </TouchableOpacity>
+      <View className="px-4 py-3 border-primary-200">
+        {isSeller ? (
+          // Seller sees both View Details and Mark as Sold buttons
+          <View className="flex-row" style={{ gap: 12 }}>
+            <TouchableOpacity
+              onPress={onViewDetails}
+              className="flex-1 py-3 px-4 rounded-xl bg-neutral-200 items-center"
+            >
+              <Text className="text-base font-inter-semibold text-neutral-700">
+                View Details
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleMarkAsSold}
+              disabled={markAsSoldMutation.isPending}
+              className="flex-1 py-3 px-4 rounded-xl bg-primary-500 items-center"
+            >
+              {markAsSoldMutation.isPending ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text className="text-base font-inter-semibold text-white">
+                  Mark as Sold
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          // Buyer only sees View Details button
+          <TouchableOpacity
+            onPress={onViewDetails}
+            className="py-3 px-4 rounded-xl bg-primary-500 items-center"
+          >
+            <Text className="text-base font-inter-semibold text-white">
+              View Details
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }

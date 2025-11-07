@@ -282,7 +282,7 @@ export default function LoginScreen({ navigation }: any) {
                 ) : null}
               </View>
 
-              {/* Forgot Password */}
+              {/* Forgot Password
               <TouchableOpacity
                 onPress={handleForgotPassword}
                 className="self-end py-2"
@@ -290,7 +290,7 @@ export default function LoginScreen({ navigation }: any) {
                 <Text className="text-sm font-inter-medium text-primary-500">
                   Forgot Password?
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             {/* Login Button */}

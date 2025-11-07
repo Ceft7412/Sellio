@@ -8,7 +8,6 @@ import {
   FlatList,
   RefreshControl,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { SearchRegularIcon } from "../../components/icons/outline/search-outline";
 import { ChatRegularIcon } from "../../components/icons/outline/chat-outline";
 import { HeartRegularIcon } from "../../components/icons/outline/heart-outline";
@@ -80,9 +79,7 @@ const ProductCard: React.FC<{ product: Product; onPress: () => void }> = ({
   product,
   onPress,
 }) => {
-  console.log("Product", product);
   const getProductTypeBadge = () => {
-    console.log("Product Sale Type", product.saleType);
     switch (product.saleType) {
       case "fixed":
         return (
@@ -221,7 +218,8 @@ export default function HomeScreen({ navigation }: any) {
   const favoritesCount = favorites?.length || 0;
 
   // Fetch unread messages count with real-time updates (only if logged in)
-  const unreadMessagesCount = user ? useUnreadMessagesCount() : 0;
+  const unreadMessagesCount = useUnreadMessagesCount();
+  const displayUnreadCount = user ? unreadMessagesCount : 0;
 
   // Refresh handler
   const [refreshing, setRefreshing] = React.useState(false);
@@ -231,7 +229,6 @@ export default function HomeScreen({ navigation }: any) {
     try {
       await Promise.all([refetchCategories(), refetchProducts()]);
     } catch (error) {
-      console.error("Error refreshing:", error);
     } finally {
       setRefreshing(false);
     }
@@ -259,8 +256,7 @@ export default function HomeScreen({ navigation }: any) {
     })) || [];
 
   const handleSearch = () => {
-    console.log("Search pressed");
-    // TODO: Navigate to search screen
+    navigation.navigate("general", { screen: "search" } as never);
   };
 
   const handleChat = () => {
@@ -280,8 +276,10 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const handleCategoryPress = (category: Category) => {
-    console.log("Category pressed:", category.name);
-    // TODO: Navigate to category screen
+    navigation.navigate("general", {
+      screen: "categoryProducts",
+      params: { categoryId: category.id, categoryName: category.name },
+    } as never);
   };
 
   const handleProductPress = (product: Product) => {
@@ -297,7 +295,7 @@ export default function HomeScreen({ navigation }: any) {
   const rightColumnProducts = products.filter((_, index) => index % 2 === 1);
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50" edges={["left"]}>
+    <View className="flex-1 bg-neutral-50">
       {/* Header */}
       <View className="bg-white px-6 py-2 border-b border-neutral-100 pt-12">
         <View className="flex-row items-center justify-between mb-4">
@@ -319,10 +317,10 @@ export default function HomeScreen({ navigation }: any) {
             >
               <ChatRegularIcon size={26} color="#374151" />
               {/* Unread messages count badge */}
-              {user && unreadMessagesCount > 0 && (
+              {user && displayUnreadCount > 0 && (
                 <View className="absolute -top-1 -right-1 bg-error-500 rounded-full min-w-[20px] h-5 items-center justify-center px-1">
                   <Text className="text-white text-xs font-inter-bold">
-                    {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
+                    {displayUnreadCount > 99 ? "99+" : displayUnreadCount}
                   </Text>
                 </View>
               )}
@@ -430,6 +428,6 @@ export default function HomeScreen({ navigation }: any) {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

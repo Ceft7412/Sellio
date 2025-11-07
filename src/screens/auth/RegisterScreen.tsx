@@ -155,8 +155,6 @@ export default function RegisterScreen({ navigation }: any) {
         },
       ]);
     } catch (error: any) {
-      console.error("Google Sign-Up error:", error);
-
       let errorMessage = "Google Sign-Up failed. Please try again.";
 
       // Handle specific Google Sign-In error codes

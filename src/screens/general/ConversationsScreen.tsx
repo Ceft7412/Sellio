@@ -289,7 +289,6 @@ export default function ConversationsScreen({ navigation }: any) {
     try {
       await refetch();
     } catch (error) {
-      console.error("Error refreshing conversations:", error);
     } finally {
       setRefreshing(false);
     }

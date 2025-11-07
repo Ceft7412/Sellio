@@ -6,9 +6,10 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import {
   useConversation,
   useMarkMessagesAsRead,
@@ -17,12 +18,15 @@ import {
 } from "../../hooks/useMessages";
 import { useAuthStore } from "../../store/authStore";
 import { useSocket } from "../../providers/SocketProvider";
-import { messagesAPI } from "../../constants/axios";
+import { messagesAPI, transactionsAPI } from "../../constants/axios";
 import { ChatHeader } from "../../components/screens/chat/ChatHeader";
 import { ChatMessage } from "../../components/screens/chat/ChatMessage";
 import { ChatInput } from "../../components/screens/chat/ChatInput";
 import { DateSeparator } from "../../components/screens/chat/DateSeparator";
 import { isSameDay } from "../../utils/dateHelpers";
+import { ChatOptionsBottomSheet } from "../../components/bottomsheets/ChatOptionsBottomSheet";
+import { useFocusEffect } from "@react-navigation/native";
+import { TransactionCompletionModal } from "../../components/modals/TransactionCompletionModal";
 
 interface Message {
   id: string;
@@ -66,6 +70,15 @@ export default function ChatScreen({
   // Socket for real-time updates
   const socket = useSocket();
 
+  // Bottom sheet ref for chat options
+  const chatOptionsBottomSheetRef = useRef<BottomSheetModal>(null);
+
+  // State to track if user has already reviewed
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [checkingReviewStatus, setCheckingReviewStatus] = useState(true);
+  const [completionModalVisible, setCompletionModalVisible] = useState(false);
+  const [completionData, setCompletionData] = useState(null);
+
   // Fetch conversation data
   const {
     data: conversationData,
@@ -95,10 +108,39 @@ export default function ChatScreen({
     }
   }, [conversationId, conversationData?.id]);
 
+  // Check if user has already reviewed this transaction
+  // Use useFocusEffect to re-check whenever screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const checkReview = async () => {
+        const transaction = conversationData?.transaction;
+        if (transaction && transaction.status === "completed") {
+          setCheckingReviewStatus(true);
+          try {
+            const response = await transactionsAPI.checkReviewExists(
+              transaction.id
+            );
+            setHasReviewed(response.data.hasReviewed);
+          } catch (error) {
+          } finally {
+            setCheckingReviewStatus(false);
+          }
+        } else {
+          // If transaction is not completed, no need to check
+          setCheckingReviewStatus(false);
+        }
+      };
+
+      checkReview();
+    }, [
+      conversationData?.transaction?.id,
+      conversationData?.transaction?.status,
+    ])
+  );
+
   // Real-time message updates via socket
   useEffect(() => {
     if (!socket || !conversationId) return;
-
     const handleNewMessage = (data: any) => {
       if (data.conversationId === conversationId) {
         refetchMessages();
@@ -138,6 +180,14 @@ export default function ChatScreen({
       }
     };
 
+    const handleBuyConfirmed = (data: any) => {
+      if (data.conversationId === conversationId) {
+        // Refetch conversation and messages when buy is confirmed
+        refetchConversation();
+        refetchMessages();
+      }
+    };
+
     const handleMeetupProposed = (data: any) => {
       if (data.conversationId === conversationId) {
         // Refetch conversation and messages when meetup is proposed
@@ -154,13 +204,63 @@ export default function ChatScreen({
       }
     };
 
+    const handleTransactionCompleted = (data: any) => {
+      if (data.conversationId === conversationId) {
+        // Refetch conversation and messages when transaction is completed
+        refetchConversation();
+        refetchMessages();
+        if (data.completionData) {
+          setCompletionData(data.completionData);
+          setCompletionModalVisible(true);
+        }
+      }
+    };
+
+    const handleTransactionCancelled = (data: any) => {
+      if (data.conversationId === conversationId) {
+        // Refetch conversation and messages when transaction is cancelled
+        refetchConversation();
+        refetchMessages();
+      }
+    };
+
+    const handleTransactionExpired = (data: any) => {
+      if (data.conversationId === conversationId) {
+        // Refetch conversation and messages when transaction is expired
+        refetchConversation();
+        refetchMessages();
+      }
+    };
+
+    const handleBidWon = (data: any) => {
+      if (data.conversationId === conversationId) {
+        // Refetch conversation and messages when bid is won
+        refetchConversation();
+        refetchMessages();
+      }
+    };
+
+    const handleBiddingEnded = (data: any) => {
+      if (data.conversationId === conversationId) {
+        // Refetch conversation and messages when bidding ends
+        refetchConversation();
+        refetchMessages();
+      }
+    };
+
     socket.on("new_message", handleNewMessage);
     socket.on("messages_read", handleMessagesRead);
     socket.on("offer_updated", handleOfferUpdated);
     socket.on("offer_accepted", handleOfferAccepted);
     socket.on("offer_rejected", handleOfferRejected);
+    socket.on("buy_confirmed", handleBuyConfirmed);
     socket.on("meetup_proposed", handleMeetupProposed);
     socket.on("meetup_accepted", handleMeetupAccepted);
+    socket.on("transaction_completed", handleTransactionCompleted);
+    socket.on("transaction_cancelled", handleTransactionCancelled);
+    socket.on("transaction_expired", handleTransactionExpired);
+    socket.on("bid_won", handleBidWon);
+    socket.on("bidding_ended", handleBiddingEnded);
 
     return () => {
       socket.off("new_message", handleNewMessage);
@@ -168,8 +268,14 @@ export default function ChatScreen({
       socket.off("offer_updated", handleOfferUpdated);
       socket.off("offer_accepted", handleOfferAccepted);
       socket.off("offer_rejected", handleOfferRejected);
+      socket.off("buy_confirmed", handleBuyConfirmed);
       socket.off("meetup_proposed", handleMeetupProposed);
       socket.off("meetup_accepted", handleMeetupAccepted);
+      socket.off("transaction_completed", handleTransactionCompleted);
+      socket.off("transaction_cancelled", handleTransactionCancelled);
+      socket.off("transaction_expired", handleTransactionExpired);
+      socket.off("bid_won", handleBidWon);
+      socket.off("bidding_ended", handleBiddingEnded);
     };
   }, [socket, conversationId]);
 
@@ -196,6 +302,12 @@ export default function ChatScreen({
 
   // Get offer details if conversation has an offer
   const offerDetails = conversationData?.offer || null;
+
+  // Get buy details if conversation has a buy
+  const buyDetails = conversationData?.buy || null;
+
+  // Get bid details if conversation has a bid
+  const bidDetails = conversationData?.bid || null;
 
   // Transform messages data to UI format
   const messages: Message[] =
@@ -233,9 +345,7 @@ export default function ChatScreen({
         messageType: "text",
       });
       setMessageText("");
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
+    } catch (error) {}
   };
 
   const handleSendImage = async (imageUri: string) => {
@@ -253,15 +363,87 @@ export default function ChatScreen({
         messageType: "image",
         imageUrl: imageUrl,
       });
-    } catch (error) {
-      console.error("Error sending image:", error);
-    }
+    } catch (error) {}
   };
 
   const handleProductPress = () => {
     navigation.navigate("general", {
       screen: "productDetail",
       params: { productId: product?.id },
+    } as never);
+  };
+
+  const handleOpenOptions = () => {
+    chatOptionsBottomSheetRef.current?.present();
+  };
+
+  const handleReportUser = () => {
+    // Close bottom sheet
+    chatOptionsBottomSheetRef.current?.dismiss();
+
+    // Get the reported user (the opposite user in the conversation)
+    const reportedUser = conversationData?.oppositeUser;
+    const transaction = conversationData?.transaction;
+
+    if (!reportedUser || !transaction || !product) return;
+
+    // Determine if current user is buyer or seller
+    const isBuyer = transaction.buyerId === currentUserId;
+
+    // Navigate to report screen
+    navigation.navigate("general", {
+      screen: "reportUser",
+      params: {
+        reportedUserId: reportedUser.id,
+        reportedUserName: reportedUser.displayName,
+        productId: product.id,
+        transactionId: transaction.id,
+        conversationId: conversationId,
+        userRole: isBuyer ? "buyer" : "seller",
+      },
+    } as never);
+  };
+
+  // Check if user can report (transaction must be completed, cancelled, or expired)
+  const canReport = conversationData?.transaction
+    ? [
+        "completed",
+        "cancelled_by_buyer",
+        "cancelled_by_seller",
+        "expired",
+      ].includes(conversationData.transaction.status)
+    : false;
+
+  const handleReview = () => {
+    const transaction = conversationData?.transaction;
+    const oppositeUser = conversationData?.oppositeUser;
+    const productData = conversationData?.product;
+
+    if (!transaction || !oppositeUser) return;
+
+    // Navigate to review screen
+    navigation.navigate("general", {
+      screen: "review",
+      params: {
+        transactionId: transaction.id,
+        revieweeName: oppositeUser.displayName,
+        revieweeAvatar: oppositeUser.avatarUrl,
+        productTitle: productData?.title,
+      },
+    } as never);
+  };
+
+  const handleViewProfile = () => {
+    const oppositeUser = conversationData?.oppositeUser;
+
+    if (!oppositeUser) return;
+
+    // Navigate to user profile screen
+    navigation.navigate("general", {
+      screen: "userProfile",
+      params: {
+        userId: oppositeUser.id,
+      },
     } as never);
   };
 
@@ -274,7 +456,10 @@ export default function ChatScreen({
       // Add date separator if date changed
       if (!lastDate || !isSameDay(lastDate, message.timestamp)) {
         elements.push(
-          <DateSeparator key={`date-${message.timestamp}`} date={message.timestamp} />
+          <DateSeparator
+            key={`date-${message.timestamp}`}
+            date={message.timestamp}
+          />
         );
         lastDate = message.timestamp;
       }
@@ -340,15 +525,26 @@ export default function ChatScreen({
         className="flex-1"
         keyboardVerticalOffset={0}
       >
-        {/* Header with optional offer and transaction details */}
+        {/* Header with optional offer, buy, bid, and transaction details */}
         <ChatHeader
           chatUser={chatUser}
           offer={offerDetails}
+          buy={buyDetails}
+          bid={bidDetails}
           transaction={conversationData?.transaction || null}
           currentUserId={user?.id || ""}
           conversationId={conversationId || ""}
           onBack={handleBack}
           onViewTransactionDetails={handleViewTransactionDetails}
+          onOpenOptions={handleOpenOptions}
+          onReview={handleReview}
+          hasReviewed={hasReviewed}
+          checkingReviewStatus={checkingReviewStatus}
+          onViewProfile={handleViewProfile}
+          onTransactionComplete={(data) => {
+            setCompletionData(data);
+            setCompletionModalVisible(true);
+          }}
         />
 
         {/* Product Context Card - Only show if product exists */}
@@ -401,6 +597,19 @@ export default function ChatScreen({
           onSendMessage={handleSendMessage}
           onSendImage={handleSendImage}
           disabled={sendMessageMutation.isPending}
+        />
+
+        {/* Chat Options Bottom Sheet */}
+        <ChatOptionsBottomSheet
+          ref={chatOptionsBottomSheetRef}
+          onReportUser={handleReportUser}
+          canReport={canReport}
+        />
+
+        <TransactionCompletionModal
+          isVisible={completionModalVisible}
+          onClose={() => setCompletionModalVisible(false)}
+          completionData={completionData}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

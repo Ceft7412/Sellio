@@ -85,8 +85,7 @@ export default function AccountScreen({ navigation }: any) {
   };
 
   const handleMyPurchases = () => {
-    Alert.alert("My Purchases", "View your purchase history");
-    // TODO: Navigate to purchases screen
+    navigation.navigate("general", { screen: "myPurchases" });
   };
 
   const handleEditProfile = () => {
@@ -94,13 +93,11 @@ export default function AccountScreen({ navigation }: any) {
   };
 
   const handleSettings = () => {
-    Alert.alert("Settings", "Manage your app settings");
-    // TODO: Navigate to settings screen
+    navigation.navigate("general", { screen: "settings" });
   };
 
   const handleMyListings = () => {
-    Alert.alert("My Listings", "View and manage your listings");
-    // TODO: Navigate to my listings screen
+    navigation.navigate("general", { screen: "myListings" });
   };
 
   // Unauthenticated State

@@ -9,6 +9,8 @@ export interface Conversation {
   participant2Id: string;
   productId: string | null;
   offerId?: string | null;
+  buyId?: string | null;
+  bidId?: string | null;
   createdAt: string;
   updatedAt: string;
   unreadMessageCount?: number;
@@ -34,6 +36,20 @@ export interface Conversation {
     status: "pending" | "accepted" | "rejected" | "expired" | "withdrawn";
     buyerId: string;
     sellerId: string;
+  } | null;
+  buy?: {
+    id: string;
+    amount: string;
+    status: "pending" | "confirmed_pending_meetup" | "cancelled_by_buyer" | "cancelled_by_seller" | "expired" | "completed";
+    buyerId: string;
+    sellerId: string;
+  } | null;
+  bid?: {
+    id: string;
+    bidAmount: string;
+    status: "active" | "won" | "lost" | "outbid" | "expired" | "completed";
+    bidderId: string;
+    productId: string;
   } | null;
   transaction?: {
     id: string;

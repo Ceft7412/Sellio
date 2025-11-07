@@ -45,7 +45,6 @@ export default function ForgotPasswordScreen({ navigation }: any) {
 
     setIsLoading(true);
     // TODO: Implement password reset logic
-    console.log("Reset password for:", email);
     setTimeout(() => {
       setIsLoading(false);
       setEmailSent(true);

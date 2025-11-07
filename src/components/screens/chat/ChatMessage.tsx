@@ -36,7 +36,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   currentUserAvatar,
   currentUserName,
 }) => {
-  console.log(message);
   return (
     <View
       className={`flex-row mb-3 ${

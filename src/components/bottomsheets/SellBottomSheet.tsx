@@ -97,7 +97,6 @@ const SellBottomSheet = forwardRef<BottomSheetModal, SellBottomSheetProps>(
         const response = await categoriesAPI.getAll();
         setCategories(response.data.categories);
       } catch (err: any) {
-        console.error("Failed to fetch categories:", err);
         setError("Failed to load categories. Please try again.");
       } finally {
         setIsLoading(false);

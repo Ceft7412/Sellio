@@ -8,21 +8,20 @@ export default {
     slug: "sellio",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/sellio-logo.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
-    splash: {
-      image: "./assets/splash-icon.png",
-      resizeMode: "contain",
-      backgroundColor: "#ffffff",
-    },
     ios: {
       supportsTablet: true,
+      runtimeVersion: "1.0.0",
       bundleIdentifier: "com.proj.sellio",
+    },
+    updates: {
+      url: "https://u.expo.dev/930fcd32-5538-49d4-b6c7-67c1c9681966",
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
+        foregroundImage: "./assets/sellio-logo.png",
         backgroundColor: "#ffffff",
       },
       package: "com.proj.sellio",
@@ -31,7 +30,9 @@ export default {
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
         },
       },
+      googleServicesFile: "./google-services.json",
       edgeToEdgeEnabled: true,
+      runtimeVersion: "1.0.0",
       predictiveBackGestureEnabled: false,
     },
     web: {
@@ -41,7 +42,7 @@ export default {
       "expo-router",
       ["@react-native-google-signin/google-signin"],
       "expo-secure-store",
-      ["expo-notifications"],
+      ["expo-notifications", {}],
       [
         "expo-media-library",
         {
@@ -69,6 +70,16 @@ export default {
           recordAudioAndroid: true,
         },
       ],
+
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/logo.png",
+          imageWidth: 100,
+          resizeMode: "contain",
+          backgroundColor: "#ffffff",
+        },
+      ],
     ],
 
     extra: {
@@ -76,5 +87,6 @@ export default {
         projectId: "930fcd32-5538-49d4-b6c7-67c1c9681966",
       },
     },
+    runTimeVersion: "1.0.0",
   },
 };

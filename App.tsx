@@ -1,5 +1,4 @@
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { StatusBar, StyleSheet, Text, View } from "react-native";
 import "./global.css";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -33,6 +32,17 @@ import ChatScreen from "./src/screens/general/ChatScreen";
 import IdentityVerificationScreen from "./src/screens/general/IdentityVerificationScreen";
 import { SocketProvider } from "./src/providers/SocketProvider";
 import MapMarkedLocation from "./src/screens/general/MapMarkedLocation";
+import ReportUserScreen from "./src/screens/general/ReportUserScreen";
+import CategoryProductsScreen from "./src/screens/general/CategoryProductsScreen";
+import SearchScreen from "./src/screens/general/SearchScreen";
+import MyPurchasesScreen from "./src/screens/general/MyPurchasesScreen";
+import MyListingsScreen from "./src/screens/general/MyListingsScreen";
+import ReviewScreen from "./src/screens/general/ReviewScreen";
+import UserProfileScreen from "./src/screens/general/UserProfileScreen";
+import ImageViewerScreen from "./src/screens/general/ImageViewerScreen";
+import SettingsScreen from "./src/screens/general/SettingsScreen";
+import AboutScreen from "./src/screens/general/AboutScreen";
+import HelpSupportScreen from "./src/screens/general/HelpSupportScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -62,6 +72,20 @@ function GeneralStack() {
         component={IdentityVerificationScreen}
       />
       <Stack.Screen name="mapMarkedLocation" component={MapMarkedLocation} />
+      <Stack.Screen name="reportUser" component={ReportUserScreen} />
+      <Stack.Screen
+        name="categoryProducts"
+        component={CategoryProductsScreen}
+      />
+      <Stack.Screen name="search" component={SearchScreen} />
+      <Stack.Screen name="myPurchases" component={MyPurchasesScreen} />
+      <Stack.Screen name="myListings" component={MyListingsScreen} />
+      <Stack.Screen name="review" component={ReviewScreen} />
+      <Stack.Screen name="userProfile" component={UserProfileScreen} />
+      <Stack.Screen name="imageViewer" component={ImageViewerScreen} />
+      <Stack.Screen name="settings" component={SettingsScreen} />
+      <Stack.Screen name="about" component={AboutScreen} />
+      <Stack.Screen name="help" component={HelpSupportScreen} />
     </Stack.Navigator>
   );
 }
@@ -97,10 +121,10 @@ export default function App() {
   if (!fontsLoaded || !isInitialized) {
     return null; // Or show a splash screen
   }
+  ``;
 
   return (
     <>
-      <StatusBar style="dark" backgroundColor="white" />
       <SocketProvider userId={user?.id || ""}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <KeyboardProvider>
@@ -125,12 +149,3 @@ export default function App() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

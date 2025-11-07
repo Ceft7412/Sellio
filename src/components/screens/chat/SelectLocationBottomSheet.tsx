@@ -91,7 +91,6 @@ export const SelectLocationBottomSheet: React.FC<
         Alert.alert("Not Found", "Location not found. Please try again.");
       }
     } catch (error) {
-      console.error("Error searching location:", error);
       Alert.alert("Error", "Failed to search location. Please try again.");
     } finally {
       setIsSearching(false);
@@ -125,7 +124,6 @@ export const SelectLocationBottomSheet: React.FC<
         setSearchQuery(address);
       }
     } catch (error) {
-      console.error("Error reverse geocoding:", error);
       // Still set location even if reverse geocoding fails
       setSelectedLocation({
         lat: latitude,

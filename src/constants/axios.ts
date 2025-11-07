@@ -26,9 +26,7 @@ axiosInstance.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-    } catch (error) {
-      console.error("Error getting auth token:", error);
-    }
+    } catch (error) {}
 
     return config;
   },
@@ -53,34 +51,27 @@ axiosInstance.interceptors.response.use(
         case 401:
           // Unauthorized - clear token and redirect to login
           await SecureStore.deleteItemAsync("authToken");
-          console.log("Unauthorized - token cleared");
           // You can dispatch a logout action o r navigate to login here
           break;
 
         case 403:
           // Forbidden
-          console.error("Access forbidden:", data.error);
           break;
 
         case 404:
           // Not found
-          console.error("Resource not found:", data.error);
           break;
 
         case 500:
           // Server error
-          console.error("Server error:", data.error);
           break;
 
         default:
-          console.error("API Error:", data.error || error.message);
       }
     } else if (error.request) {
       // Request was made but no response received
-      console.error("Network error - no response received");
     } else {
       // Something else happened
-      console.error("Error:", error.message);
     }
 
     return Promise.reject(error);
@@ -180,6 +171,13 @@ export const productsAPI = {
     axiosInstance.post(`/products/${productId}/favorite`),
 
   getUserFavorites: () => axiosInstance.get("/products/user/favorites"),
+
+  // View tracking
+  trackView: (productId: string) =>
+    axiosInstance.post(`/products/${productId}/view`),
+
+  // Seller analytics
+  getSellerAnalytics: () => axiosInstance.get("/products/user/analytics"),
 };
 
 export const categoriesAPI = {
@@ -214,16 +212,34 @@ export const offersAPI = {
 
   getUserOffers: () => axiosInstance.get("/offers/user/my-offers"),
 
-  acceptOffer: (offerId: string) => axiosInstance.put(`/offers/${offerId}/accept`),
+  acceptOffer: (offerId: string) =>
+    axiosInstance.put(`/offers/${offerId}/accept`),
 
-  rejectOffer: (offerId: string) => axiosInstance.put(`/offers/${offerId}/reject`),
+  rejectOffer: (offerId: string) =>
+    axiosInstance.put(`/offers/${offerId}/reject`),
 
   updateOffer: (offerId: string, newAmount: string) =>
     axiosInstance.put(`/offers/${offerId}/update`, { newAmount }),
 };
 
+// Buys API
+export const buysAPI = {
+  confirmBuy: (buyId: string) => axiosInstance.put(`/buys/${buyId}/confirm`),
+};
+
+// Bids API
+export const bidsAPI = {
+  getProductBids: (productId: string) =>
+    axiosInstance.get(`/bids/products/${productId}/bids`),
+  placeBid: (productId: string, bidAmount: string) =>
+    axiosInstance.post(`/bids/products/${productId}/bids`, { bidAmount }),
+};
+
 // Transactions API
 export const transactionsAPI = {
+  getMyPurchases: () => axiosInstance.get("/transactions/my-purchases"),
+  getMySales: () => axiosInstance.get("/transactions/my-sales"),
+
   proposeMeetup: (
     transactionId: string,
     data: {
@@ -231,8 +247,98 @@ export const transactionsAPI = {
       meetupLocation: string;
       meetupCoordinates: any;
     }
-  ) => axiosInstance.post(`/transactions/${transactionId}/propose-meetup`, data),
+  ) =>
+    axiosInstance.post(`/transactions/${transactionId}/propose-meetup`, data),
 
   acceptMeetup: (transactionId: string) =>
     axiosInstance.post(`/transactions/${transactionId}/accept-meetup`),
+
+  markAsSold: (transactionId: string) =>
+    axiosInstance.post(`/transactions/${transactionId}/mark-as-sold`),
+
+  cancelTransaction: (
+    transactionId: string,
+    data: {
+      reason: string;
+      customReason?: string;
+    }
+  ) => axiosInstance.post(`/transactions/${transactionId}/cancel`, data),
+
+  checkReviewExists: (transactionId: string) =>
+    axiosInstance.get(`/transactions/${transactionId}/review-exists`),
+
+  createReview: (transactionId: string, formData: FormData) =>
+    axiosInstance.post(`/transactions/${transactionId}/review`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+};
+
+// Location Sharing API
+export const locationAPI = {
+  startSharing: (conversationId: string) =>
+    axiosInstance.post(`/location/${conversationId}/start`),
+
+  stopSharing: (conversationId: string) =>
+    axiosInstance.post(`/location/${conversationId}/stop`),
+
+  updateLocation: (
+    conversationId: string,
+    data: { latitude: number; longitude: number }
+  ) => axiosInstance.post(`/location/${conversationId}/update`, data),
+
+  getSession: (conversationId: string) =>
+    axiosInstance.get(`/location/${conversationId}/session`),
+};
+
+// Reports API
+export const reportsAPI = {
+  submitReport: (data: {
+    reportedUserId: string;
+    productId: string;
+    transactionId: string;
+    reportType: string;
+    details?: string;
+    conversationId: string;
+  }) => axiosInstance.post("/reports/submit", data),
+
+  getMyReports: () => axiosInstance.get("/reports/my-reports"),
+};
+
+// Users API
+export const usersAPI = {
+  getUserProfile: (userId: string) =>
+    axiosInstance.get(`/users/${userId}/profile`),
+  updateProfile: (data: {
+    displayName?: string;
+    phoneNumber?: string;
+    bio?: string;
+    avatarUrl?: string;
+    businessDocuments?: any;
+  }) => axiosInstance.put("/users/profile", data),
+};
+
+// Notifications API
+export const notificationsAPI = {
+  getAll: () => axiosInstance.get("/notifications"),
+  getUnreadCount: () => axiosInstance.get("/notifications/unread-count"),
+  markAsRead: (notificationId: string) =>
+    axiosInstance.put(`/notifications/${notificationId}/read`),
+  markAllAsRead: () => axiosInstance.put("/notifications/read-all"),
+  deleteNotification: (notificationId: string) =>
+    axiosInstance.delete(`/notifications/${notificationId}`),
+  archiveAll: () => axiosInstance.put("/notifications/archive-all"),
+};
+
+// Device Tokens API (for push notifications)
+export const deviceTokensAPI = {
+  register: (data: {
+    expoPushToken: string;
+    deviceName?: string;
+    deviceType?: string;
+  }) => axiosInstance.post("/device-tokens/register", data),
+  unregister: (expoPushToken: string) =>
+    axiosInstance.post("/device-tokens/unregister", { expoPushToken }),
+  getAll: () => axiosInstance.get("/device-tokens"),
 };

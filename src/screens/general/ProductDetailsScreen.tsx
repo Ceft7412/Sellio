@@ -11,6 +11,9 @@ import {
   Share,
   Platform,
   RefreshControl,
+  Linking,
+  Modal,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
@@ -19,6 +22,7 @@ import { HeartRegularIcon } from "../../components/icons/outline/heart-outline";
 import { ChatRegularIcon } from "../../components/icons/outline/chat-outline";
 import { ShareIosRegularIcon } from "../../components/icons/outline/share-outline";
 import { LocationRegularIcon } from "../../components/icons/outline/location-outline";
+import { XMarkRegularIcon } from "../../components/icons/outline/xmark-outline";
 import { StarColorIcon } from "../../components/icons/fill/star-color-fill";
 import { useAuthStore } from "../../store/authStore";
 import { useProductById, useToggleFavorite } from "../../hooks/useProducts";
@@ -32,6 +36,9 @@ import { ProductDetailsLoadingState } from "../../components/states/loading";
 import { HeartFilledIcon } from "../../components/icons/fill/heart-fill";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { bidsAPI, productsAPI } from "../../constants/axios";
+import BiddersBottomSheet from "../../components/bottomsheets/BiddersBottomSheet";
 
 const { width } = Dimensions.get("window");
 
@@ -43,11 +50,13 @@ interface Product {
   title: string;
   price: number;
   images: string[];
+  maintenanceImages?: string[];
   type: ProductType;
   category: string;
   location: string;
   description: string;
   condition: string;
+  blockchainAddress?: string;
   seller: {
     id: string;
     name: string;
@@ -63,52 +72,35 @@ interface Product {
   specs?: { [key: string]: string };
 }
 
-// Mock Product Data
-const MOCK_PRODUCT: Product = {
-  id: "1",
-  title: "Gaming Setup - RTX 4090 Complete Build",
-  price: 3500,
-  images: [
-    "https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=800",
-    "https://images.unsplash.com/photo-1593640495253-23196b27a87f?w=800",
-    "https://images.unsplash.com/photo-1600861194942-f883de0dfe96?w=800",
-    "https://images.unsplash.com/photo-1616588589676-62b3bd4ff6d2?w=800",
-  ],
-  type: "bidding", // Change to "direct_buy" or "negotiable" to see different UIs
-  category: "Electronics",
-  location: "Austin, TX",
-  condition: "Like New",
-  description:
-    "Complete high-end gaming setup featuring NVIDIA RTX 4090, Intel i9-13900K, 64GB DDR5 RAM, and 2TB NVMe SSD. Includes RGB lighting, custom water cooling, and premium peripherals. Perfect for 4K gaming and content creation. Barely used, in excellent condition.",
-  currentBid: 3200,
-  minimumBid: 100,
-  bidCount: 12,
-  endTime: "2h 34m remaining",
-  seller: {
-    id: "s1",
-    name: "Mike Chen",
-    avatar: "https://i.pravatar.cc/150?img=33",
-    verified: true,
-    rating: 4.8,
-    totalSales: 45,
-  },
-  specs: {
-    GPU: "NVIDIA RTX 4090",
-    CPU: "Intel i9-13900K",
-    RAM: "64GB DDR5",
-    Storage: "2TB NVMe SSD",
-    Cooling: "Custom Water Loop",
-  },
-};
-
 export default function ProductDetailsScreen({ navigation, route }: any) {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
 
   // Get product ID from route params
   const productId = route?.params?.productId;
 
   // Fetch product data using TanStack Query
-  const { data: productData, isLoading, error, refetch } = useProductById(productId);
+  const {
+    data: productData,
+    isLoading,
+    error,
+    refetch,
+  } = useProductById(productId);
+
+  // Fetch bids for bidding products
+  const {
+    data: bidsData,
+    isLoading: bidsLoading,
+    refetch: refetchBids,
+  } = useQuery({
+    queryKey: ["productBids", productId],
+    queryFn: async () => {
+      const response = await bidsAPI.getProductBids(productId);
+      return response.data;
+    },
+    enabled: !!productId && productData?.saleType === "bidding",
+    staleTime: 30000,
+  });
 
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
@@ -121,13 +113,84 @@ export default function ProductDetailsScreen({ navigation, route }: any) {
   // Favorite mutation
   const toggleFavoriteMutation = useToggleFavorite();
 
+  // Place bid mutation
+  const placeBidMutation = useMutation({
+    mutationFn: (bidAmount: string) => bidsAPI.placeBid(productId, bidAmount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["productBids", productId] });
+      setBidAmount("");
+      Alert.alert("Success", "Your bid has been placed successfully!");
+    },
+    onError: (error: any) => {
+      Alert.alert(
+        "Error",
+        error?.response?.data?.error || "Failed to place bid"
+      );
+    },
+  });
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [bidAmount, setBidAmount] = useState("");
   const [offerAmount, setOfferAmount] = useState("");
+  const [biddersBottomSheetVisible, setBiddersBottomSheetVisible] =
+    useState(false);
+  const [countdown, setCountdown] = useState("");
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Maintenance image viewer state
+  const [maintenanceImageViewerVisible, setMaintenanceImageViewerVisible] =
+    useState(false);
+  const [maintenanceImageViewerIndex, setMaintenanceImageViewerIndex] =
+    useState(0);
+  const maintenanceScrollViewRef = useRef<ScrollView>(null);
 
   // Get favorite status from backend data
   const isFavorite = productData?.isFavorited || false;
+
+  // Calculate countdown for bidding end time
+  const calculateCountdown = (endTime: string) => {
+    const end = new Date(endTime).getTime();
+    const now = new Date().getTime();
+    const distance = end - now;
+
+    if (distance < 0) {
+      return "Ended";
+    }
+
+    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const hours = Math.floor(
+      (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    );
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  };
+
+  // Update countdown every second for bidding products
+  React.useEffect(() => {
+    if (productData?.saleType === "bidding" && productData?.biddingEndsAt) {
+      const timer = setInterval(() => {
+        setCountdown(calculateCountdown(productData.biddingEndsAt));
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [productData?.biddingEndsAt, productData?.saleType]);
+
+  // Track product view when the screen is first loaded
+  React.useEffect(() => {
+    if (productId) {
+    }
+  }, [productId]);
 
   // Transform backend data to UI format
   const product: Product | null = productData
@@ -136,6 +199,8 @@ export default function ProductDetailsScreen({ navigation, route }: any) {
         title: productData.title,
         price: parseFloat(productData.price),
         images: productData.images?.map((img: any) => img.url) || [],
+        maintenanceImages:
+          productData.maintenanceImages?.map((img: any) => img.url) || [],
         type:
           productData.saleType === "fixed"
             ? "direct_buy"
@@ -149,6 +214,7 @@ export default function ProductDetailsScreen({ navigation, route }: any) {
         location: productData.location || "Location not specified",
         description: productData.description,
         condition: toTitleCase(productData.condition || ""), // Normalize condition: like_new -> Like New
+        blockchainAddress: productData.blockchain_address || undefined,
         seller: {
           id: productData.seller?.id || "unknown",
           name: productData.seller?.displayName || "Anonymous Seller",
@@ -157,13 +223,14 @@ export default function ProductDetailsScreen({ navigation, route }: any) {
           rating: productData.seller?.sellerRating || 0, // Real seller rating from reviews
           totalSales: 0, // TODO: Add real sales count
         },
-        currentBid: productData.minimumBid
-          ? parseFloat(productData.minimumBid)
-          : undefined,
+        // Show highest bid if available, otherwise show starting price
+        currentBid: bidsData?.highestBid?.amount
+          ? parseFloat(bidsData.highestBid.amount)
+          : parseFloat(productData.price),
         minimumBid: productData.minimumBid
           ? parseFloat(productData.minimumBid)
           : undefined,
-        bidCount: 0, // TODO: Fetch actual bid count
+        bidCount: bidsData?.bidCount || 0,
         endTime: productData.biddingEndsAt || undefined,
         specs: productData.attributes
           ? normalizeObject(productData.attributes)
@@ -202,17 +269,21 @@ export default function ProductDetailsScreen({ navigation, route }: any) {
 
     try {
       // Create share message with product details
-      const shareMessage = `🛍️ Check out this ${product.type === "bidding" ? "auction" : "item"} on Sellio!
+      const shareMessage = `Check out this ${
+        product.type === "bidding" ? "auction" : "item"
+      } on Sellio!
 
-📦 ${product.title}
-💰 Price: ₱${product.price.toLocaleString()}
-📍 Location: ${product.location}
-✨ Condition: ${product.condition}
+${product.title}
+Price: ₱${product.price.toLocaleString()}
+Location: ${product.location}
+Condition: ${product.condition}
 
-${product.description.substring(0, 150)}${product.description.length > 150 ? "..." : ""}
+${product.description.substring(0, 150)}${
+        product.description.length > 150 ? "..." : ""
+      }
 
-${product.seller.verified ? "✅ Verified Seller" : ""}
-${product.seller.rating > 0 ? `⭐ ${product.seller.rating.toFixed(1)} Rating` : ""}
+${product.seller.verified ? "Verified Seller" : ""}
+${product.seller.rating > 0 ? `${product.seller.rating.toFixed(1)} Rating` : ""}
 
 View full details on Sellio app!`;
 
@@ -235,14 +306,11 @@ View full details on Sellio app!`;
         if (result.action === Share.sharedAction) {
           if (result.activityType) {
             // Shared with activity type of result.activityType
-            console.log("Shared via:", result.activityType);
           } else {
             // Shared successfully
-            console.log("Product shared successfully");
           }
         } else if (result.action === Share.dismissedAction) {
           // Share dismissed
-          console.log("Share dismissed");
         }
       } else {
         // Fallback for web or other platforms
@@ -258,7 +326,6 @@ View full details on Sellio app!`;
       }
       */
     } catch (error: any) {
-      console.error("Error sharing product:", error);
       Alert.alert("Error", "Failed to share product. Please try again.");
     }
   };
@@ -286,7 +353,6 @@ View full details on Sellio app!`;
         });
       }
     } catch (error) {
-      console.error("Error sharing with image:", error);
       // Fallback to text-only share if image share fails
       throw error;
     }
@@ -316,7 +382,6 @@ View full details on Sellio app!`;
         params: { conversationId: result.conversation.id },
       } as never);
     } catch (error: any) {
-      console.error("Error creating conversation:", error);
       Alert.alert(
         "Error",
         error?.response?.data?.message || "Failed to start conversation"
@@ -349,7 +414,6 @@ View full details on Sellio app!`;
         params: { conversationId: result.conversation.id },
       } as never);
     } catch (error: any) {
-      console.error("Error creating buy conversation:", error);
       Alert.alert(
         "Error",
         error?.response?.data?.message || "Failed to start conversation"
@@ -388,7 +452,6 @@ View full details on Sellio app!`;
 
       setOfferAmount("");
     } catch (error: any) {
-      console.error("Error creating negotiable conversation:", error);
       Alert.alert(
         "Error",
         error?.response?.data?.message || "Failed to send offer"
@@ -416,21 +479,13 @@ View full details on Sellio app!`;
     }
 
     const bidValue = parseFloat(bidAmount);
-    const minRequired =
-      (product.currentBid ?? product.price) + (product.minimumBid ?? 0);
-
-    if (bidValue < minRequired) {
-      Alert.alert("Error", `Minimum bid is ₱${minRequired.toLocaleString()}`);
-      return;
-    }
 
     Alert.alert("Place Bid", `Place a bid of ₱${bidValue.toLocaleString()}?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Confirm Bid",
         onPress: () => {
-          Alert.alert("Success", "Bid placed successfully!");
-          setBidAmount("");
+          placeBidMutation.mutate(bidAmount);
         },
       },
     ]);
@@ -442,18 +497,36 @@ View full details on Sellio app!`;
     setCurrentImageIndex(index);
   };
 
+  const handleMaintenanceImageScroll = (event: any) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollPosition / width);
+    setMaintenanceImageViewerIndex(index);
+  };
+
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     try {
       await refetch();
     } catch (error) {
-      console.error("Error refreshing product:", error);
     } finally {
       setRefreshing(false);
     }
   }, [refetch]);
 
   const renderActionButtons = () => {
+    // Show "Sold" status if product is sold
+    if (productData?.status === "sold") {
+      return (
+        <View className="px-6 py-4 bg-white border-t border-neutral-100">
+          <View className="p-4 bg-error-50 rounded-xl border border-error-200">
+            <Text className="text-center text-sm font-inter-regular text-error-600">
+              This item has been sold
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     // Don't show action buttons if the user is the seller
     if (user && product?.seller.id === user.id) {
       return (
@@ -535,57 +608,80 @@ View full details on Sellio app!`;
       case "bidding":
         return (
           <View className="px-6 py-4 bg-white border-t border-neutral-100">
-            {/* Bidding Info */}
-            <View className="mb-4 p-4 bg-success-50 rounded-xl">
+            {/* Bidding Info - Pressable to view bidders */}
+            <TouchableOpacity
+              onPress={() => setBiddersBottomSheetVisible(true)}
+              className="mb-4 p-4 bg-success-50 rounded-xl active:bg-success-100"
+            >
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-sm font-inter-regular text-neutral-600">
                   Current Bid
                 </Text>
-                <Text className="text-sm font-inter-medium text-success-600">
-                  {product?.endTime}
+                <Text
+                  className={`text-sm font-inter-semiBold ${
+                    countdown === "Ended"
+                      ? "text-error-600"
+                      : "text-success-600"
+                  }`}
+                >
+                  {countdown || "Loading..."}
                 </Text>
               </View>
               <Text className="text-2xl font-inter-bold text-success-600 mb-1">
                 ₱{product?.currentBid?.toLocaleString()}
               </Text>
               <Text className="text-xs font-inter-regular text-neutral-500">
-                {product?.bidCount} bids • Starting price: ₱ ₱
+                {product?.bidCount} bids • Starting price: ₱
                 {product?.price.toLocaleString()}
               </Text>
-            </View>
+              <Text className="text-xs font-inter-medium text-success-600 mt-2">
+                Tap to view all bidders
+              </Text>
+            </TouchableOpacity>
 
             {/* Place Bid */}
-            <View className="mb-3">
-              <Text className="text-sm font-inter-medium text-neutral-700 mb-2">
-                Place Your Bid
-              </Text>
-              <View className="flex-row">
-                <View className="flex-1 mr-2">
-                  <TextInput
-                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-inter-regular text-neutral-900 text-base"
-                    placeholder={`Min: ₱${(
-                      (product?.currentBid || product?.price) +
-                      (product?.minimumBid || 0)
-                    ).toLocaleString()}`}
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="numeric"
-                    value={bidAmount}
-                    onChangeText={setBidAmount}
-                  />
+            {countdown !== "Ended" ? (
+              <View className="mb-3">
+                <Text className="text-sm font-inter-medium text-neutral-700 mb-2">
+                  Place Your Bid
+                </Text>
+                <View className="flex-row">
+                  <View className="flex-1 mr-2">
+                    <TextInput
+                      className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-inter-regular text-neutral-900 text-base"
+                      placeholder={`Min: ₱${(
+                        (product?.currentBid || product?.price) +
+                        (product?.minimumBid || 0)
+                      ).toLocaleString()}`}
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="numeric"
+                      value={bidAmount}
+                      onChangeText={setBidAmount}
+                    />
+                  </View>
+                  <TouchableOpacity
+                    onPress={handlePlaceBid}
+                    className="px-6 py-3 rounded-xl bg-success-500 active:bg-success-600 justify-center"
+                  >
+                    <Text className="text-white text-base font-inter-semiBold">
+                      Bid
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  onPress={handlePlaceBid}
-                  className="px-6 py-3 rounded-xl bg-success-500 active:bg-success-600 justify-center"
-                >
-                  <Text className="text-white text-base font-inter-semiBold">
-                    Bid
-                  </Text>
-                </TouchableOpacity>
+                <Text className="text-xs font-inter-regular text-neutral-500 mt-2">
+                  Minimum increment: ₱{product?.minimumBid?.toLocaleString()}
+                </Text>
               </View>
-              <Text className="text-xs font-inter-regular text-neutral-500 mt-2">
-                Minimum increment: ₱{product?.minimumBid?.toLocaleString()}
-              </Text>
-            </View>
+            ) : (
+              <View className="mb-3 p-4 bg-error-50 rounded-xl">
+                <Text className="text-base font-inter-semiBold text-error-600 text-center">
+                  Bidding Has Ended
+                </Text>
+                <Text className="text-sm font-inter-regular text-error-500 text-center mt-1">
+                  This auction is now closed
+                </Text>
+              </View>
+            )}
           </View>
         );
     }
@@ -743,6 +839,16 @@ View full details on Sellio app!`;
                     style={{ width, height: 400 }}
                     resizeMode="cover"
                   />
+                  {/* Sold Overlay on Images */}
+                  {productData?.status === "sold" && (
+                    <View className="absolute inset-0 bg-black/60 items-center justify-center">
+                      <View className="bg-error-500 px-8 py-4 rounded-2xl">
+                        <Text className="text-3xl font-inter-bold text-white">
+                          SOLD
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
               ))}
             </ScrollView>
@@ -769,7 +875,15 @@ View full details on Sellio app!`;
                   {product.category}
                 </Text>
               </View>
-              {getProductTypeBadge()}
+              {productData?.status === "sold" ? (
+                <View className="bg-error-500 px-3 py-1.5 rounded-lg">
+                  <Text className="text-xs font-inter-semiBold text-white">
+                    SOLD
+                  </Text>
+                </View>
+              ) : (
+                getProductTypeBadge()
+              )}
             </View>
 
             {/* Title */}
@@ -801,7 +915,12 @@ View full details on Sellio app!`;
 
             {/* Seller Info */}
             <TouchableOpacity
-              onPress={handleContactSeller}
+              onPress={() => {
+                navigation.navigate("general", {
+                  screen: "userProfile",
+                  params: { userId: product.seller.id },
+                } as never);
+              }}
               className="flex-row items-center p-4 bg-neutral-50 rounded-2xl mb-4"
               activeOpacity={0.7}
             >
@@ -859,6 +978,39 @@ View full details on Sellio app!`;
               </Text>
             </View>
 
+            {/* Blockchain Hash */}
+            {productData.blockchainAddress && (
+              <View className="mb-4">
+                <Text className="text-lg font-inter-bold text-neutral-900 mb-2">
+                  Blockchain Record
+                </Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    Linking.openURL(
+                      `https://sepolia.etherscan.io/tx/${productData.blockchainAddress}`
+                    )
+                  }
+                  className="p-4 bg-blue-50 rounded-xl border border-blue-200 flex-row items-center justify-between"
+                >
+                  <View className="flex-1 mr-2">
+                    <Text className="text-sm font-inter-medium text-blue-700 mb-1">
+                      View on Etherscan
+                    </Text>
+                    <Text
+                      className="text-xs font-inter-regular text-blue-600"
+                      numberOfLines={1}
+                      ellipsizeMode="middle"
+                    >
+                      {productData.blockchainAddress}
+                    </Text>
+                  </View>
+                  <Text className="text-blue-500 text-base font-inter-semiBold">
+                    ↗
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Specifications */}
             {product.specs && (
               <View className="mb-4">
@@ -886,12 +1038,123 @@ View full details on Sellio app!`;
                 </View>
               </View>
             )}
+
+            {/* Maintenance Checklist */}
+            {product.maintenanceImages &&
+              product.maintenanceImages.length > 0 && (
+                <View className="mb-4">
+                  <Text className="text-lg font-inter-bold text-neutral-900 mb-3">
+                    Maintenance Checklist
+                  </Text>
+                  <Text className="text-sm font-inter-regular text-neutral-600 mb-3">
+                    Maintenance records, service history, and inspection reports
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {product.maintenanceImages.map((imageUrl, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        className="mr-3"
+                        onPress={() => {
+                          setMaintenanceImageViewerIndex(index);
+                          setMaintenanceImageViewerVisible(true);
+                        }}
+                      >
+                        <Image
+                          source={{ uri: imageUrl }}
+                          className="w-32 h-32 rounded-xl"
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
           </View>
         </ScrollView>
 
         {/* Action Buttons */}
         {renderActionButtons()}
       </KeyboardAvoidingView>
+
+      {/* Bidders Bottom Sheet */}
+      <BiddersBottomSheet
+        visible={biddersBottomSheetVisible}
+        onClose={() => setBiddersBottomSheetVisible(false)}
+        bids={bidsData?.bids || []}
+        isLoading={bidsLoading}
+      />
+
+      {/* Maintenance Image Viewer Modal */}
+      <Modal
+        visible={maintenanceImageViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMaintenanceImageViewerVisible(false)}
+      >
+        <View className="flex-1 bg-black">
+          <StatusBar barStyle="light-content" />
+
+          {/* Header with close button */}
+          <SafeAreaView className="absolute top-0 left-0 right-0 z-10">
+            <View className="flex-row items-center justify-between px-6 py-4">
+              <View className="flex-1">
+                <Text className="text-white font-inter-semiBold text-base">
+                  Maintenance Checklist
+                </Text>
+                <Text className="text-white/70 font-inter-regular text-sm mt-1">
+                  {maintenanceImageViewerIndex + 1} of{" "}
+                  {product?.maintenanceImages?.length || 0}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setMaintenanceImageViewerVisible(false)}
+                className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
+              >
+                <XMarkRegularIcon size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+
+          {/* Image Gallery */}
+          <ScrollView
+            ref={maintenanceScrollViewRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={handleMaintenanceImageScroll}
+            scrollEventThrottle={16}
+          >
+            {product?.maintenanceImages?.map((imageUrl, index) => (
+              <View
+                key={index}
+                style={{ width, height: Dimensions.get("window").height }}
+              >
+                <View className="flex-1 items-center justify-center">
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={{ width: width - 32, height: width - 32 }}
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Image Indicators */}
+          <View className="absolute bottom-8 left-0 right-0 flex-row justify-center">
+            {product?.maintenanceImages?.map((_, index) => (
+              <View
+                key={index}
+                className={`w-2 h-2 rounded-full mx-1 ${
+                  index === maintenanceImageViewerIndex
+                    ? "bg-white"
+                    : "bg-white/30"
+                }`}
+              />
+            ))}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

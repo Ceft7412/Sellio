@@ -101,20 +101,10 @@ export default function IdentityVerificationScreen({ navigation }: any) {
       setIsLoading(true);
 
       // Convert all images to base64
-      console.log("🔄 Converting all images to base64...");
       const frontBase64 = await convertImageToBase64(idImages.front!);
       const backBase64 = await convertImageToBase64(idImages.back!);
       const faceBase64 = await convertImageToBase64(selfie!);
 
-      console.log("✅ All images converted to base64");
-      console.log("📏 ID Front base64 length:", frontBase64.length);
-      console.log("📏 ID Back base64 length:", backBase64.length);
-      console.log("📏 Face base64 length:", faceBase64.length);
-
-      // Verify ID document with biometric face verification (ALL IN ONE CALL)
-      console.log(
-        "\n📤 Sending complete verification with biometric face matching..."
-      );
       const result = await idAnalyzerAPI.verifyIDDocument(
         frontBase64,
         backBase64,
@@ -131,12 +121,6 @@ export default function IdentityVerificationScreen({ navigation }: any) {
         setStatusErrorModalVisible(true);
         return false;
       }
-
-      console.log("\n✅ Complete verification successful!");
-      console.log(
-        "📊 Verification Data:",
-        JSON.stringify(result.data, null, 2)
-      );
 
       // Check decision from API response
       const { decision, warning } = result.data;
@@ -177,21 +161,16 @@ export default function IdentityVerificationScreen({ navigation }: any) {
 
       // Handle accept decision - call backend API
       if (decision === "accept") {
-        console.log("\n✅ Decision: ACCEPT - Calling backend API...");
-
         try {
           await userAPI.verifyIdentity();
-          console.log("✅ Backend API call successful!");
 
           // Refresh user data to reflect verified status
           await refreshUser();
-          console.log("✅ User data refreshed!");
 
           // Show success modal
           setSuccessModalVisible(true);
           return true;
         } catch (backendError: any) {
-          console.error("❌ Backend API error:", backendError);
           setErrorModalContent({
             title: "Server Error",
             message:
@@ -204,7 +183,6 @@ export default function IdentityVerificationScreen({ navigation }: any) {
 
       return false;
     } catch (error: any) {
-      console.error("❌ Verification error:", error);
       setErrorModalContent({
         title: "Error",
         message: "An unexpected error occurred. Please try again.",
@@ -324,7 +302,6 @@ export default function IdentityVerificationScreen({ navigation }: any) {
           setSelfie(photo.uri);
         }
       } catch (error) {
-        console.error("Error taking selfie:", error);
         Alert.alert("Error", "Failed to capture selfie. Please try again.");
       } finally {
         setUploadingType(null);

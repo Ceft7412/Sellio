@@ -91,7 +91,6 @@ export default function CategoryScreen({ navigation }: any) {
 
       setCategories(response.data.categories);
     } catch (err: any) {
-      console.error("Failed to fetch categories:", err);
       setError("Failed to load categories. Please try again.");
     } finally {
       setIsLoading(false);
@@ -109,9 +108,10 @@ export default function CategoryScreen({ navigation }: any) {
   );
 
   const handleCategoryPress = (category: Category) => {
-    Alert.alert("Category", `Navigate to ${category.name} products`);
-    // TODO: Navigate to category products screen
-    // navigation.navigate("CategoryProducts", { categoryId: category.id, categoryName: category.name });
+    navigation.navigate("general", {
+      screen: "categoryProducts",
+      params: { categoryId: category.id, categoryName: category.name },
+    } as never);
   };
 
   const handleSearchFocus = () => {
@@ -119,9 +119,9 @@ export default function CategoryScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-neutral-50" edges={["left", "right"]}>
       {/* Header */}
-      <View className="bg-white px-6 py-4 border-b border-neutral-100">
+      <View className="bg-white px-6 pt-12 pb-2 border-b border-neutral-100">
         <Text className="text-2xl font-inter-bold text-primary-500 mb-4">
           Categories
         </Text>

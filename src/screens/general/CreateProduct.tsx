@@ -66,7 +66,8 @@ const CONDITION_OPTIONS = [
 
 export default function CreateProduct() {
   // Get route params and navigation
-  const route = useRoute<RouteProp<{ params: CreateProductRouteParams }, "params">>();
+  const route =
+    useRoute<RouteProp<{ params: CreateProductRouteParams }, "params">>();
   const navigation = useNavigation();
   const categoryFromRoute = route.params?.selectedCategory;
 
@@ -89,6 +90,9 @@ export default function CreateProduct() {
   const [saleType, setSaleType] = useState<SaleType>("fixed");
   const [minimumBid, setMinimumBid] = useState("");
   const [images, setImages] = useState<ProductImage[]>([]);
+  const [maintenanceImages, setMaintenanceImages] = useState<ProductImage[]>(
+    []
+  );
   const [dynamicAttributes, setDynamicAttributes] = useState<{
     [key: string]: any;
   }>({});
@@ -124,9 +128,7 @@ export default function CreateProduct() {
     try {
       const response = await categoriesAPI.getById(parentId);
       setParentCategory(response.data.category);
-    } catch (error) {
-      console.error("Failed to fetch parent category:", error);
-    }
+    } catch (error) {}
   };
 
   const fetchCategoryAttributes = async (
@@ -141,7 +143,6 @@ export default function CreateProduct() {
       );
       setCategoryAttributes(response.data.attributes || []);
     } catch (error) {
-      console.error("Failed to fetch category attributes:", error);
       Alert.alert("Error", "Failed to load category attributes");
     } finally {
       setLoadingAttributes(false);
@@ -153,7 +154,6 @@ export default function CreateProduct() {
   };
 
   const handleCategorySelect = (category: Category) => {
-    console.log("Selected category:", category);
     setSelectedCategory(category);
     setDynamicAttributes({}); // Reset dynamic attributes
   };
@@ -186,7 +186,6 @@ export default function CreateProduct() {
         setImages([...images, ...newImages]);
       }
     } catch (error) {
-      console.error("Error picking images:", error);
       Alert.alert("Error", "Failed to pick images");
     }
   };
@@ -210,6 +209,44 @@ export default function CreateProduct() {
       isCover: i === index,
     }));
     setImages(newImages);
+  };
+
+  // Maintenance Images Picker
+  const pickMaintenanceImages = async () => {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "We need camera roll permissions to upload images."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        selectionLimit: 10 - maintenanceImages.length,
+      });
+
+      if (!result.canceled) {
+        const newImages: ProductImage[] = result.assets.map((asset) => ({
+          uri: asset.uri,
+          isCover: false, // Maintenance images don't have cover
+        }));
+        setMaintenanceImages([...maintenanceImages, ...newImages]);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick images");
+    }
+  };
+
+  const removeMaintenanceImage = (index: number) => {
+    const newImages = [...maintenanceImages];
+    newImages.splice(index, 1);
+    setMaintenanceImages(newImages);
   };
 
   const handleDynamicAttributeChange = (key: string, value: any) => {
@@ -278,8 +315,7 @@ export default function CreateProduct() {
 
       // Add optional fields
       if (location) formData.append("location", location);
-      if (parentCategory?.id)
-        formData.append("category_id", parentCategory.id);
+      if (parentCategory?.id) formData.append("category_id", parentCategory.id);
       if (selectedCategory?.id)
         formData.append("sub_category_id", selectedCategory.id);
 
@@ -293,7 +329,7 @@ export default function CreateProduct() {
         formData.append("dynamicAttributes", JSON.stringify(dynamicAttributes));
       }
 
-      // Add images - need to fetch them as blobs and append to FormData
+      // Add product images - need to fetch them as blobs and append to FormData
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
 
@@ -314,12 +350,30 @@ export default function CreateProduct() {
         });
       }
 
-      console.log("Submitting product...");
+      // Add maintenance images
+      for (let i = 0; i < maintenanceImages.length; i++) {
+        const image = maintenanceImages[i];
+
+        // Fetch the image as blob
+        const response = await fetch(image.uri);
+        const blob = await response.blob();
+
+        // Extract filename from URI or create one
+        const uriParts = image.uri.split("/");
+        const fileName =
+          uriParts[uriParts.length - 1] || `maintenance_${i}.jpg`;
+
+        // Append to formData with field name 'maintenanceImages'
+        // @ts-ignore - FormData typing issue with React Native
+        formData.append("maintenanceImages", {
+          uri: image.uri,
+          type: blob.type || "image/jpeg",
+          name: fileName,
+        });
+      }
 
       // Submit using TanStack Query mutation
       await createProductMutation.mutateAsync(formData);
-
-      console.log("Product created successfully");
 
       Alert.alert(
         "Success",
@@ -335,7 +389,6 @@ export default function CreateProduct() {
         ]
       );
     } catch (error: any) {
-      console.error("Failed to create product:", error);
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||
@@ -532,6 +585,56 @@ export default function CreateProduct() {
             ))}
           </ScrollView>
         </View>
+
+        {/* Maintenance Checklist Photos (only for vehicles) */}
+        {categoryAttributes.some(
+          (attr) => attr.attributeKey === "maintenance_checklist"
+        ) && (
+          <View className="bg-white px-6 py-4 mb-2">
+            <Text className="text-lg font-inter-bold text-neutral-900 mb-3">
+              Maintenance Checklist
+            </Text>
+            <Text className="text-sm font-inter-regular text-neutral-600 mb-4">
+              Upload photos of maintenance records, service history, or
+              inspection reports (optional, up to 10 photos)
+            </Text>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {/* Add Image Button */}
+              {maintenanceImages.length < 10 && (
+                <TouchableOpacity
+                  onPress={pickMaintenanceImages}
+                  className="w-24 h-24 rounded-xl bg-neutral-100 items-center justify-center mr-3 border-2 border-dashed border-neutral-300"
+                >
+                  <CameraRegularIcon size={32} color="#9CA3AF" />
+                  <Text className="text-xs font-inter-medium text-neutral-500 mt-1">
+                    Add Photo
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Image List */}
+              {maintenanceImages.map((image, index) => (
+                <View key={index} className="mr-3">
+                  <View className="w-24 h-24 rounded-xl overflow-hidden relative">
+                    <Image
+                      source={{ uri: image.uri }}
+                      className="w-full h-full"
+                      resizeMode="cover"
+                    />
+                  </View>
+                  {/* Remove Button */}
+                  <TouchableOpacity
+                    onPress={() => removeMaintenanceImage(index)}
+                    className="absolute -right-2 w-6 h-6 rounded-full bg-error-500 items-center justify-center"
+                  >
+                    <XMarkRegularIcon size={14} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Category Selection */}
         <View className="bg-white px-6 py-4 mb-2">
@@ -757,7 +860,7 @@ export default function CreateProduct() {
             </Text>
             <View className="bg-white border border-neutral-200 rounded-xl px-4 py-3 flex-row items-center">
               <Text className="text-base font-inter-semiBold text-neutral-700 mr-2">
-                $
+                ₱
               </Text>
               <TextInput
                 className="flex-1 font-inter-regular text-base text-neutral-900"
@@ -777,7 +880,7 @@ export default function CreateProduct() {
               </Text>
               <View className="bg-white border border-neutral-200 rounded-xl px-4 py-3 flex-row items-center">
                 <Text className="text-base font-inter-semiBold text-neutral-700 mr-2">
-                  $
+                  ₱
                 </Text>
                 <TextInput
                   className="flex-1 font-inter-regular text-base text-neutral-900"
@@ -827,7 +930,9 @@ export default function CreateProduct() {
           onPress={handleSubmit}
           disabled={createProductMutation.isPending}
           className={`rounded-xl py-4 items-center ${
-            createProductMutation.isPending ? "bg-primary-300" : "bg-primary-500"
+            createProductMutation.isPending
+              ? "bg-primary-300"
+              : "bg-primary-500"
           }`}
         >
           {createProductMutation.isPending ? (

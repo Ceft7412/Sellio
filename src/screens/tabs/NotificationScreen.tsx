@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -6,120 +6,41 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AlertOnRegularIcon } from "../../components/icons/outline/bell-on-outline";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { notificationsAPI } from "../../constants/axios";
 
 // Types
-type NotificationType =
-  | "order"
-  | "message"
-  | "bid"
-  | "offer"
-  | "system"
-  | "favorite";
+type NotificationType = "user" | "system";
 
 interface Notification {
   id: string;
+  userId: string;
   type: NotificationType;
   title: string;
   message: string;
-  timestamp: string;
+  image_url: string;
+  route_name: string | null;
+  route_params: string | null;
+  data: any;
   isRead: boolean;
-  image?: string;
-  actionUrl?: string;
+  status: string;
+  createdAt: string;
+  timestamp: string; // Formatted timestamp from server
 }
-
-// Mock Notifications Data
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    type: "bid",
-    title: "New Bid on Your Item",
-    message: "John Smith placed a bid of $3,400 on Gaming Setup - RTX 4090",
-    timestamp: "5 minutes ago",
-    isRead: false,
-    image: "https://i.pravatar.cc/150?img=12",
-  },
-  {
-    id: "2",
-    type: "message",
-    title: "New Message",
-    message: "Emma Wilson sent you a message about Vintage Leather Jacket",
-    timestamp: "1 hour ago",
-    isRead: false,
-    image: "https://i.pravatar.cc/150?img=45",
-  },
-  {
-    id: "3",
-    type: "offer",
-    title: "Offer Accepted",
-    message: "Your offer of $250 for Vintage Leather Jacket was accepted!",
-    timestamp: "2 hours ago",
-    isRead: false,
-  },
-  {
-    id: "4",
-    type: "order",
-    title: "Order Delivered",
-    message: "Your order for iPhone 14 Pro Max has been delivered",
-    timestamp: "3 hours ago",
-    isRead: true,
-  },
-  {
-    id: "5",
-    type: "favorite",
-    title: "Price Drop Alert",
-    message: "Mountain Bike - Trek X you favorited dropped to $400",
-    timestamp: "5 hours ago",
-    isRead: true,
-    image: "https://images.unsplash.com/photo-1576435728678-68d0fbf94e91?w=400",
-  },
-  {
-    id: "6",
-    type: "system",
-    title: "Identity Verification Complete",
-    message:
-      "Your identity has been verified! You can now list items for sale.",
-    timestamp: "1 day ago",
-    isRead: true,
-  },
-  {
-    id: "7",
-    type: "bid",
-    title: "Outbid Alert",
-    message: "Someone outbid you on Designer Watch Collection",
-    timestamp: "1 day ago",
-    isRead: true,
-    image: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=400",
-  },
-  {
-    id: "8",
-    type: "message",
-    title: "New Message",
-    message: "Mike Chen asked about product availability",
-    timestamp: "2 days ago",
-    isRead: true,
-    image: "https://i.pravatar.cc/150?img=33",
-  },
-];
 
 // Notification Icon Component
 const NotificationIcon: React.FC<{ type: NotificationType }> = ({ type }) => {
   const getIconAndColor = () => {
     switch (type) {
-      case "order":
-        return { emoji: "📦", bg: "bg-primary-100" };
-      case "message":
-        return { emoji: "💬", bg: "bg-secondary-100" };
-      case "bid":
-        return { emoji: "⚡", bg: "bg-warning-100" };
-      case "offer":
-        return { emoji: "🤝", bg: "bg-success-100" };
+      case "user":
+        return { emoji: "👤", bg: "bg-primary-100" };
       case "system":
         return { emoji: "ℹ️", bg: "bg-neutral-100" };
-      case "favorite":
-        return { emoji: "❤️", bg: "bg-error-100" };
       default:
         return { emoji: "🔔", bg: "bg-neutral-100" };
     }
@@ -151,17 +72,13 @@ const NotificationItem: React.FC<{
     >
       {/* Icon or Image */}
       <View className="mr-3">
-        {notification.image ? (
+        {notification.image_url ? (
           <Image
-            source={{ uri: notification.image }}
+            source={{ uri: notification.image_url }}
             className="w-12 h-12 rounded-full"
           />
         ) : (
           <NotificationIcon type={notification.type} />
-        )}
-        {/* Unread Indicator */}
-        {!notification.isRead && (
-          <View className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full border-2 border-white" />
         )}
       </View>
 
@@ -191,25 +108,107 @@ const NotificationItem: React.FC<{
 };
 
 export default function NotificationScreen({ navigation }: any) {
-  const [notifications, setNotifications] =
-    useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = React.useState(false);
 
-  // Count unread notifications
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  // Fetch notifications
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const response = await notificationsAPI.getAll();
+      return response.data;
+    },
+  });
+
+  const notifications = data?.notifications || [];
+  const unreadCount = data?.unreadCount || 0;
+
+  // Handle pull to refresh
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
+  // Mark notification as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: (notificationId: string) =>
+      notificationsAPI.markAsRead(notificationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  // Mark all as read mutation
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => notificationsAPI.markAllAsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: () => {
+      Alert.alert("Error", "Failed to mark all as read");
+    },
+  });
+
+  // Archive all notifications mutation
+  const archiveAllMutation = useMutation({
+    mutationFn: () => notificationsAPI.archiveAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: () => {
+      Alert.alert("Error", "Failed to clear notifications");
+    },
+  });
 
   const handleNotificationPress = (notification: Notification) => {
     // Mark as read
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
-    );
+    markAsReadMutation.mutate(notification.id);
 
-    Alert.alert("Notification", `Navigate to: ${notification.title}`);
-    // TODO: Navigate to relevant screen based on notification type
+    // Navigate based on route_name
+    if (notification.route_name && notification.route_params) {
+      try {
+        const params = JSON.parse(notification.route_params);
+
+        // // Handle different route names
+        // switch (notification.route_name) {
+        //   case "chat":
+        //     navigation.navigate("Messages", {
+        //       screen: "ChatScreen",
+        //       params: { conversationId: params.conversationId },
+        //     });
+        //     break;
+        //   case "productDetail":
+        //     navigation.navigate("ProductDetail", {
+        //       productId: params.productId,
+        //     });
+        //     break;
+        //   case "myPurchases":
+        //     navigation.navigate("Profile", {
+        //       screen: "MyPurchases",
+        //     });
+        //     break;
+        //   case "myListings":
+        //     navigation.navigate("Profile", {
+        //       screen: "MyListings",
+        //     });
+        //     break;
+        //   case "review":
+        //     navigation.navigate("Review", {
+        //       transactionId: params.transactionId,
+        //     });
+        //     break;
+        //   case "userProfile":
+        //     navigation.navigate("UserProfile", { userId: params.userId });
+        //     break;
+        //   default:
+        // }
+      } catch (err) {}
+    }
   };
 
   const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    Alert.alert("Success", "All notifications marked as read");
+    markAllAsReadMutation.mutate();
   };
 
   const handleClearAll = () => {
@@ -222,15 +221,52 @@ export default function NotificationScreen({ navigation }: any) {
           text: "Clear All",
           style: "destructive",
           onPress: () => {
-            setNotifications([]);
+            archiveAllMutation.mutate();
           },
         },
       ]
     );
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="px-6 py-4 border-b border-neutral-100">
+          <Text className="text-2xl font-inter-bold text-primary-500">
+            Notifications
+          </Text>
+        </View>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#0D3F81" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="px-6 py-4 border-b border-neutral-100">
+          <Text className="text-2xl font-inter-bold text-primary-500">
+            Notifications
+          </Text>
+        </View>
+        <View className="flex-1 items-center justify-center px-6">
+          <Text className="text-lg font-inter-semiBold text-neutral-800 mb-2">
+            Failed to load notifications
+          </Text>
+          <Text className="text-base font-inter-regular text-neutral-500 text-center">
+            Please try again later
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
       {/* Header */}
       <View className="px-6 py-4 border-b border-neutral-100">
         <View className="flex-row items-center justify-between mb-2">
@@ -267,8 +303,18 @@ export default function NotificationScreen({ navigation }: any) {
 
       {/* Notifications List */}
       {notifications.length > 0 ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {notifications.map((notification) => (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#0D3F81"]}
+              tintColor="#0D3F81"
+            />
+          }
+        >
+          {notifications.map((notification: Notification) => (
             <NotificationItem
               key={notification.id}
               notification={notification}
@@ -277,18 +323,31 @@ export default function NotificationScreen({ navigation }: any) {
           ))}
         </ScrollView>
       ) : (
-        // Empty State
-        <View className="flex-1 items-center justify-center px-6">
-          <View className="p-6 rounded-full bg-neutral-100 items-center justify-center mb-4">
-            <AlertOnRegularIcon size={110} color="#6B7280" />
+        // Empty State with pull to refresh
+        <ScrollView
+          contentContainerStyle={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#0D3F81"]}
+              tintColor="#0D3F81"
+            />
+          }
+        >
+          <View className="flex-1 items-center justify-center px-6">
+            <View className="p-6 rounded-full bg-neutral-100 items-center justify-center mb-4">
+              <AlertOnRegularIcon size={110} color="#6B7280" />
+            </View>
+            <Text className="text-xl font-inter-bold text-neutral-800 mb-2">
+              No Notifications
+            </Text>
+            <Text className="text-base font-inter-regular text-neutral-500 text-center">
+              You're all caught up! Check back later for new updates.
+            </Text>
           </View>
-          <Text className="text-xl font-inter-bold text-neutral-800 mb-2">
-            No Notifications
-          </Text>
-          <Text className="text-base font-inter-regular text-neutral-500 text-center">
-            You're all caught up! Check back later for new updates.
-          </Text>
-        </View>
+        </ScrollView>
       )}
     </SafeAreaView>
   );

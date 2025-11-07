@@ -50,16 +50,9 @@ export const verifyIDDocument = async (
       payload.face = faceBase64;
     }
 
-    console.log("🔍 Sending ID verification request to ID Analyzer API...");
-    console.log("📋 API Endpoint:", ID_ANALYZER_API_URL);
-    console.log("📋 Request payload keys:", Object.keys(payload));
-    console.log("📏 Document base64 length:", frontBase64.length);
     if (backBase64) {
-      console.log("📏 DocumentBack base64 length:", backBase64.length);
     }
     if (faceBase64) {
-      console.log("📏 Face base64 length:", faceBase64.length);
-      console.log("🔐 Biometric face verification enabled");
     }
 
     const response = await axios.post(ID_ANALYZER_API_URL, payload, {
@@ -70,26 +63,13 @@ export const verifyIDDocument = async (
       timeout: 30000, // 30 seconds timeout for image processing
     });
 
-    console.log("✅ ID Analyzer API Response Status:", response.status);
-    console.log(
-      "✅ ID Analyzer API Response:",
-      JSON.stringify(response.data, null, 2)
-    );
-
     return {
       success: true,
       data: response.data,
     };
   } catch (error: any) {
-    console.error("❌ ID Analyzer API Error:", error);
-
     if (error.response) {
       // Server responded with error
-      console.error("❌ Error Status:", error.response.status);
-      console.error(
-        "❌ Error Response:",
-        JSON.stringify(error.response.data, null, 2)
-      );
       return {
         success: false,
         error: {
@@ -102,7 +82,6 @@ export const verifyIDDocument = async (
       };
     } else if (error.request) {
       // Request made but no response
-      console.error("❌ No response received from ID Analyzer API");
       return {
         success: false,
         error: {
@@ -112,7 +91,6 @@ export const verifyIDDocument = async (
       };
     } else {
       // Something else went wrong
-      console.error("❌ Error:", error.message);
       return {
         success: false,
         error: {

@@ -4,7 +4,6 @@ import {
   useEffect,
   useState,
   ReactNode,
-  useRef,
 } from "react";
 import { io, Socket } from "socket.io-client";
 
@@ -19,40 +18,40 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
   children,
   userId,
 }) => {
-  const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const socket = io(
+    if (!userId) {
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
+      return;
+    }
+
+    const newSocket = io(
       process.env.EXPO_PUBLIC_SOCKET_URL || "http://localhost:3000",
       {
         transports: ["websocket"],
       }
     );
 
-    socketRef.current = socket;
+    setSocket(newSocket);
 
-    socket.on("connect", () => {
-      console.log("✅ Connected to socket");
+    newSocket.on("connect", () => {
       // Join user to their room
-      if (userId) {
-        socket.emit("join", userId);
-        console.log(`📨 Joined room for user ${userId}`);
-      }
+      newSocket.emit("join", userId);
     });
 
-    socket.on("disconnect", () => {
-      console.log("❌ Disconnected from socket");
-    });
+    newSocket.on("disconnect", () => {});
 
     return () => {
-      socket.disconnect();
+      newSocket.disconnect();
     };
   }, [userId]);
 
   return (
-    <SocketContext.Provider value={socketRef.current}>
-      {children}
-    </SocketContext.Provider>
+    <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
   );
 };
 

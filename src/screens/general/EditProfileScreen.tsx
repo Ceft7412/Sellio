@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,26 +9,56 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import { ArrowLeftOutlineIcon } from "../../components/icons/outline/arrow-left-outline";
 import { PersonOutlineIcon } from "../../components/icons/outline/person-outline";
 import { useAuthStore } from "../../store/authStore";
 import { CameraRegularIcon } from "../../components/icons/outline/camera-outline";
 import { DocumentTextRegularIcon } from "../../components/icons/outline/document-outline";
-import { ShareIosRegularIcon } from "../../components/icons/outline/share-outline";
+import { usersAPI } from "../../constants/axios";
+import { useMutation } from "@tanstack/react-query";
 
 export default function EditProfileScreen({ navigation }: any) {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
 
   // Form state
   const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [bio, setBio] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(
+    (user as any)?.phoneNumber || ""
+  );
+  const [bio, setBio] = useState((user as any)?.bio || "");
   const [location, setLocation] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(
     user?.avatarUrl || null
   );
-  const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+
+  useEffect(() => {
+    // Load existing user data
+    if (user) {
+      setDisplayName(user.displayName || "");
+      setPhoneNumber((user as any).phoneNumber || "");
+      setBio((user as any).bio || "");
+      setSelectedAvatar(user.avatarUrl || null);
+
+      // Load existing business document if available
+      const businessDocs = (user as any).businessDocuments;
+
+      if (businessDocs && businessDocs.url) {
+        setSelectedDocument({
+          name: businessDocs.name || "business_document.jpg",
+          uri: businessDocs.url,
+          type: "image/jpeg",
+          isExisting: true, // Flag to indicate this is from database
+        });
+      } else {
+        // Clear document if none exists
+        setSelectedDocument(null);
+      }
+    }
+  }, [user]);
 
   const handleBack = () => {
     if (navigation?.goBack) {
@@ -36,26 +66,90 @@ export default function EditProfileScreen({ navigation }: any) {
     }
   };
 
+  const validatePhilippinesPhone = (phone: string): boolean => {
+    // Philippines format: 639XXXXXXXXX (12 digits total)
+    const phoneRegex = /^639\d{9}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const handlePhoneChange = (text: string) => {
+    // Remove all non-numeric characters
+    const cleaned = text.replace(/\D/g, "");
+    setPhoneNumber(cleaned);
+
+    // Validate as user types
+    if (cleaned.length > 0) {
+      if (!cleaned.startsWith("63")) {
+        setPhoneError("Phone must start with 63");
+      } else if (cleaned.length === 3 && cleaned[2] !== "9") {
+        setPhoneError("Philippines mobile numbers start with 639");
+      } else if (cleaned.length > 12) {
+        setPhoneError("Phone number is too long");
+      } else if (cleaned.length === 12 && !validatePhilippinesPhone(cleaned)) {
+        setPhoneError("Invalid Philippines phone number");
+      } else if (cleaned.length < 12) {
+        setPhoneError("Phone number must be 12 digits (639XXXXXXXXX)");
+      } else {
+        setPhoneError("");
+      }
+    } else {
+      setPhoneError("");
+    }
+  };
+
+  const pickImageFromCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Camera permission is required to take photos"
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedAvatar(result.assets[0].uri);
+    }
+  };
+
+  const pickImageFromLibrary = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Media library permission is required to select photos"
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedAvatar(result.assets[0].uri);
+    }
+  };
+
   const handleChooseAvatar = () => {
     Alert.alert("Change Profile Picture", "Choose an option", [
       {
         text: "Take Photo",
-        onPress: () => {
-          // TODO: Open camera
-          Alert.alert("Camera", "Camera functionality to be implemented");
-        },
+        onPress: pickImageFromCamera,
       },
       {
         text: "Choose from Library",
-        onPress: () => {
-          // TODO: Open image picker
-          Alert.alert(
-            "Gallery",
-            "Image picker functionality to be implemented"
-          );
-          // Simulate avatar selection
-          setSelectedAvatar("https://i.pravatar.cc/300?img=68");
-        },
+        onPress: pickImageFromLibrary,
       },
       {
         text: "Cancel",
@@ -64,23 +158,65 @@ export default function EditProfileScreen({ navigation }: any) {
     ]);
   };
 
+  const pickDocumentFromCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Camera permission is required to take photos"
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.9,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedDocument({
+        name: "business_document.jpg",
+        uri: result.assets[0].uri,
+        type: "image/jpeg",
+      });
+    }
+  };
+
+  const pickDocumentFromLibrary = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Media library permission is required to select photos"
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.9,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedDocument({
+        name: "business_document.jpg",
+        uri: result.assets[0].uri,
+        type: "image/jpeg",
+      });
+    }
+  };
+
   const handleUploadDocument = () => {
-    Alert.alert("Upload Business Document", "Select document type", [
+    Alert.alert("Upload Business Document", "Choose an option", [
       {
-        text: "Business License",
-        onPress: () => {
-          // TODO: Open document picker
-          Alert.alert("Success", "Business license uploaded (simulated)");
-          setSelectedDocument("business_license.pdf");
-        },
+        text: "Take Photo",
+        onPress: pickDocumentFromCamera,
       },
       {
-        text: "Tax ID",
-        onPress: () => {
-          // TODO: Open document picker
-          Alert.alert("Success", "Tax ID uploaded (simulated)");
-          setSelectedDocument("tax_id.pdf");
-        },
+        text: "Choose from Library",
+        onPress: pickDocumentFromLibrary,
       },
       {
         text: "Cancel",
@@ -92,7 +228,7 @@ export default function EditProfileScreen({ navigation }: any) {
   const handleRemoveDocument = () => {
     Alert.alert(
       "Remove Document",
-      "Are you sure you want to remove this document?",
+      "Are you sure you want to remove this document? Changes will be saved when you tap Save Changes.",
       [
         {
           text: "Cancel",
@@ -103,11 +239,85 @@ export default function EditProfileScreen({ navigation }: any) {
           style: "destructive",
           onPress: () => {
             setSelectedDocument(null);
-            Alert.alert("Success", "Document removed");
           },
         },
       ]
     );
+  };
+
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: {
+      displayName?: string;
+      phoneNumber?: string;
+      bio?: string;
+      avatarUrl?: string;
+      businessDocuments?: any;
+    }) => usersAPI.updateProfile(data),
+    onSuccess: (response) => {
+      // Update the auth store with new user data
+      setUser(response.data.user);
+      Alert.alert("Success", "Profile updated successfully!", [
+        {
+          text: "OK",
+          onPress: () => {
+            handleBack();
+          },
+        },
+      ]);
+    },
+    onError: (error: any) => {
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Failed to update profile"
+      );
+    },
+  });
+
+  const uploadImage = async (
+    imageUri: string,
+    endpoint: string = "avatar"
+  ): Promise<string> => {
+    try {
+      // Get auth token
+      const SecureStore = await import("expo-secure-store");
+      const token = await SecureStore.getItemAsync("authToken");
+
+      // Create form data
+      const formData = new FormData();
+      const filename = imageUri.split("/").pop() || "image.jpg";
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : "image/jpeg";
+
+      formData.append("image", {
+        uri: imageUri,
+        name: filename,
+        type,
+      } as any);
+
+      const API_BASE_URL =
+        process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:3000/api/v1";
+      const API_KEY = process.env.EXPO_PUBLIC_APP_API_KEY;
+
+      // Upload to backend endpoint
+      const response = await fetch(`${API_BASE_URL}/upload/${endpoint}`, {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-API-Key": API_KEY || "",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.imageUrl;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const handleSave = async () => {
@@ -122,21 +332,100 @@ export default function EditProfileScreen({ navigation }: any) {
       return;
     }
 
+    if (phoneNumber && !validatePhilippinesPhone(phoneNumber)) {
+      Alert.alert(
+        "Error",
+        "Please enter a valid Philippines phone number (639XXXXXXXXX)"
+      );
+      return;
+    }
+
+    if (bio.length > 500) {
+      Alert.alert("Error", "Bio must not exceed 500 characters");
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      let avatarUrl = user?.avatarUrl;
+      let businessDocumentUrl = null;
+
+      // Upload new avatar if changed
+      if (
+        selectedAvatar &&
+        selectedAvatar !== user?.avatarUrl &&
+        selectedAvatar.startsWith("file://")
+      ) {
+        try {
+          avatarUrl = await uploadImage(selectedAvatar, "avatar");
+        } catch (error) {
+          Alert.alert("Warning", "Failed to upload avatar, continuing...");
+        }
+      }
+
+      // Upload business document if provided (only if it's a new one)
+      if (selectedDocument && selectedDocument.uri && user?.identityVerified) {
+        // Check if it's a new document (not from database)
+        if (!selectedDocument.isExisting) {
+          try {
+            businessDocumentUrl = await uploadImage(
+              selectedDocument.uri,
+              "document"
+            );
+          } catch (error) {
+            Alert.alert(
+              "Warning",
+              "Failed to upload business document, continuing..."
+            );
+          }
+        } else {
+          // Keep existing document URL
+          businessDocumentUrl = selectedDocument.uri;
+        }
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        displayName: displayName.trim(),
+        bio: bio.trim(),
+      };
+
+      // Only include phone number if it's valid and not empty
+      if (phoneNumber && phoneNumber.trim()) {
+        updateData.phoneNumber = phoneNumber.trim();
+      }
+
+      // Only include avatar URL if it changed
+      if (avatarUrl !== user?.avatarUrl) {
+        updateData.avatarUrl = avatarUrl;
+      }
+
+      // Handle business documents
+      if (user?.identityVerified) {
+        if (businessDocumentUrl) {
+          // Update or keep business document
+          updateData.businessDocuments = {
+            url: businessDocumentUrl,
+            name: selectedDocument.name,
+            uploadedAt:
+              selectedDocument.isExisting &&
+              (user as any).businessDocuments?.uploadedAt
+                ? (user as any).businessDocuments.uploadedAt
+                : new Date().toISOString(),
+          };
+        } else if (!selectedDocument) {
+          // Document was removed, set to null
+          updateData.businessDocuments = null;
+        }
+      }
+
+      await updateProfileMutation.mutateAsync(updateData);
+    } catch (error) {
+      Alert.alert("Error", "Failed to update profile. Please try again.");
+    } finally {
       setIsLoading(false);
-      Alert.alert("Success", "Profile updated successfully!", [
-        {
-          text: "OK",
-          onPress: () => {
-            // TODO: Update user store with new data
-            handleBack();
-          },
-        },
-      ]);
-    }, 1500);
+    }
   };
 
   return (
@@ -233,13 +522,25 @@ export default function EditProfileScreen({ navigation }: any) {
               Phone Number
             </Text>
             <TextInput
-              className="w-full px-4 py-3.5 bg-white border border-neutral-200 rounded-xl font-inter-regular text-neutral-900 text-base"
-              placeholder="Enter your phone number"
+              className={`w-full px-4 py-3.5 bg-white border rounded-xl font-inter-regular text-neutral-900 text-base ${
+                phoneError ? "border-error-500" : "border-neutral-200"
+              }`}
+              placeholder="639XXXXXXXXX"
               placeholderTextColor="#9CA3AF"
               value={phoneNumber}
-              onChangeText={setPhoneNumber}
+              onChangeText={handlePhoneChange}
               keyboardType="phone-pad"
+              maxLength={12}
             />
+            {phoneError ? (
+              <Text className="text-xs font-inter-regular text-error-500 mt-1">
+                {phoneError}
+              </Text>
+            ) : (
+              <Text className="text-xs font-inter-regular text-neutral-500 mt-1">
+                Format: 639XXXXXXXXX (Philippines mobile)
+              </Text>
+            )}
           </View>
 
           {/* Location */}
@@ -290,34 +591,42 @@ export default function EditProfileScreen({ navigation }: any) {
                     Business Documents
                   </Text>
                   <Text className="text-xs font-inter-regular text-neutral-500">
-                    Optional - Upload business license or tax ID
+                    Optional - Take a photo of your business license or tax ID
                   </Text>
                 </View>
               </View>
 
               {selectedDocument ? (
-                <View className="p-3 bg-success-50 border border-success-200 rounded-xl mb-3">
+                <View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      // Open full image view
+                      navigation.navigate("general", {
+                        screen: "imageViewer",
+                        params: { imageUrl: selectedDocument.uri },
+                      } as never);
+                    }}
+                    className="mb-2"
+                    activeOpacity={0.7}
+                  >
+                    <Image
+                      source={{ uri: selectedDocument.uri }}
+                      className="w-32 h-32 rounded-xl"
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
                   <View className="flex-row items-center justify-between">
-                    <View className="flex-1 flex-row items-center">
-                      <Text className="text-2xl mr-3">📎</Text>
-                      <View className="flex-1">
-                        <Text
-                          className="text-sm font-inter-medium text-neutral-900"
-                          numberOfLines={1}
-                        >
-                          {selectedDocument}
-                        </Text>
-                        <Text className="text-xs font-inter-regular text-neutral-500">
-                          Uploaded successfully
-                        </Text>
-                      </View>
-                    </View>
+                    <Text className="text-xs font-inter-regular text-success-600 flex-1">
+                      Tap image to view full size
+                    </Text>
                     <TouchableOpacity
                       onPress={handleRemoveDocument}
-                      className="ml-2 w-8 h-8 rounded-full bg-error-100 items-center justify-center"
+                      className="px-3 py-1.5 bg-error-50 border border-error-200 rounded-lg"
                       activeOpacity={0.7}
                     >
-                      <Text className="text-error-600 text-lg">×</Text>
+                      <Text className="text-xs font-inter-semiBold text-error-600">
+                        Remove
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -327,12 +636,12 @@ export default function EditProfileScreen({ navigation }: any) {
                   className="p-4 border-2 border-dashed border-neutral-300 rounded-xl bg-neutral-50 items-center active:bg-neutral-100"
                   activeOpacity={0.7}
                 >
-                  <ShareIosRegularIcon size={40} color="#0D3F8180" />
+                  <CameraRegularIcon size={40} color="#0D3F81" />
                   <Text className="text-sm font-inter-semiBold text-neutral-700 mb-1">
-                    Upload Document
+                    Take Photo of Document
                   </Text>
                   <Text className="text-xs font-inter-regular text-neutral-500 text-center">
-                    PDF, JPG, PNG (Max 10MB)
+                    Business license, tax ID, or permit
                   </Text>
                 </TouchableOpacity>
               )}

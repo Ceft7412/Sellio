@@ -1,8 +1,11 @@
-import { View, Text, TouchableOpacity, Image } from "react-native";
-import React, { useMemo, useRef, useEffect } from "react";
+import { View, Text, TouchableOpacity, Image, Alert } from "react-native";
+import React, { useMemo, useRef, useEffect, useState } from "react";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useAuthStore } from "../../store/authStore";
-
+import LocationSharingCard from "../LocationSharingCard";
+import TransactionCancellationModal from "../modals/TransactionCancellationModal";
+import { transactionsAPI } from "../../constants/axios";
+import { ScrollView } from "react-native-gesture-handler";
 interface TransactionDetails {
   id: string;
   status: string;
@@ -38,6 +41,22 @@ interface Offer {
   sellerId: string;
 }
 
+interface Buy {
+  id: string;
+  amount: string;
+  status: string;
+  buyerId: string;
+  sellerId: string;
+}
+
+interface Bid {
+  id: string;
+  bidAmount: string;
+  status: string;
+  bidderId: string;
+  productId: string;
+}
+
 interface TransactionDetailsBottomSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -45,6 +64,20 @@ interface TransactionDetailsBottomSheetProps {
   product: Product | null;
   oppositeUser: OppositeUser | null;
   offer: Offer | null;
+  buy: Buy | null;
+  bid: Bid | null;
+  conversationId: string;
+  navigation?: any; // Optional navigation prop
+  // Location sharing props (passed from parent)
+  isSharing: boolean;
+  oppositeUserSharing: boolean;
+  myDistance: string | null;
+  oppositeUserDistance: string | null;
+  nearbyPlaces: any[];
+  startSharing: () => void;
+  stopSharing: () => void;
+  isStarting: boolean;
+  isStopping: boolean;
 }
 
 export default function TransactionDetailsBottomSheet({
@@ -54,12 +87,28 @@ export default function TransactionDetailsBottomSheet({
   product,
   oppositeUser,
   offer,
+  buy,
+  bid,
+  conversationId,
+  navigation,
+  // Location sharing props
+  isSharing,
+  oppositeUserSharing,
+  myDistance,
+  oppositeUserDistance,
+  nearbyPlaces,
+  startSharing,
+  stopSharing,
+  isStarting,
+  isStopping,
 }: TransactionDetailsBottomSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const { user } = useAuthStore();
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
-  // Snap points - leave space for the close button on map
-  const snapPoints = useMemo(() => ["65%"], []);
+  // Snap points
+  const snapPoints = useMemo(() => ["45%", "65%", "85%"], []);
 
   // Control visibility
   useEffect(() => {
@@ -91,27 +140,117 @@ export default function TransactionDetailsBottomSheet({
   // Determine participants
   const isBuyer = user?.id === transaction.buyerId;
 
+  // Check if cancellation is allowed (1 hour before meetup restriction)
+  const canCancelTransaction = useMemo(() => {
+    if (!transaction.scheduledMeetupAt) return true;
+
+    const meetupTime = new Date(transaction.scheduledMeetupAt);
+    const now = new Date();
+    const oneHourBeforeMeetup = new Date(meetupTime.getTime() - 60 * 60 * 1000);
+
+    return now < oneHourBeforeMeetup;
+  }, [transaction.scheduledMeetupAt]);
+
+  // Handle transaction cancellation
+  const handleCancelTransaction = async (
+    reason: string,
+    customReason?: string
+  ) => {
+    try {
+      setIsCancelling(true);
+
+      await transactionsAPI.cancelTransaction(transaction.id, {
+        reason,
+        customReason,
+      });
+
+      // Close modal and bottomsheet immediately
+      setShowCancellationModal(false);
+      onClose();
+
+      // Navigate to chat screen if navigation is available
+      if (navigation) {
+        setTimeout(() => {
+          navigation.navigate("general", {
+            screen: "chat",
+            params: { conversationId },
+          } as never);
+        }, 100);
+      }
+
+      // Show success message
+      setTimeout(() => {
+        Alert.alert(
+          "Transaction Cancelled",
+          "The transaction has been cancelled successfully."
+        );
+      }, 300);
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error?.response?.data?.error ||
+          "Failed to cancel transaction. Please try again."
+      );
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   return (
     <BottomSheetModal
       ref={bottomSheetRef}
       enableDynamicSizing={false}
-      snapPoints={["45%", "65%", "85%"]}
+      snapPoints={snapPoints}
       enablePanDownToClose={false}
       handleIndicatorStyle={{ backgroundColor: "#D1D5DB" }}
     >
       <BottomSheetScrollView
-        className=" px-4"
+        className="px-4"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 24 }}
       >
         {/* Header */}
-
         <View className="mb-4">
           <Text className="text-xl font-inter-bold text-neutral-900">
             Transaction Details
           </Text>
         </View>
 
+        {nearbyPlaces && nearbyPlaces.length > 0 && (
+          <View className="mb-4">
+            <Text className="text-lg font-inter-semiBold text-neutral-800 mb-3">
+              Nearby Places
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row ">
+                {nearbyPlaces.map((place: any, index: number) => (
+                  <View key={index} className="mr-3 w-40">
+                    <Image
+                      source={{
+                        uri:
+                          place.photoUrl ||
+                          "https://via.placeholder.com/150?text=No+Image",
+                      }}
+                      className="w-full h-24 rounded-lg bg-neutral-200"
+                    />
+                    <Text
+                      className="text-sm font-inter-medium text-neutral-800 mt-2"
+                      numberOfLines={2}
+                    >
+                      {place.name}
+                    </Text>
+                    <Text
+                      className="text-xs font-inter-regular text-neutral-500"
+                      numberOfLines={1}
+                    >
+                      {place.address}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
         {/* Product Details */}
         {product && (
           <View className="bg-neutral-50 rounded-2xl p-4 mb-4">
@@ -140,6 +279,19 @@ export default function TransactionDetailsBottomSheet({
                       </Text>
                       <Text className="font-inter-bold text-base text-primary-500">
                         ₱{parseFloat(offer.amount).toLocaleString()}
+                      </Text>
+                    </>
+                  ) : buy ? (
+                    <Text className="font-inter-bold text-base text-primary-500">
+                      ₱{parseFloat(buy.amount).toLocaleString()}
+                    </Text>
+                  ) : bid ? (
+                    <>
+                      <Text className="font-inter-regular text-sm text-neutral-500 line-through">
+                        ₱{parseFloat(product.price || "0").toLocaleString()}
+                      </Text>
+                      <Text className="font-inter-bold text-base text-success-500">
+                        ₱{parseFloat(bid.bidAmount).toLocaleString()}
                       </Text>
                     </>
                   ) : (
@@ -279,33 +431,68 @@ export default function TransactionDetailsBottomSheet({
           </View>
         </View>
 
-        {/* Action Buttons */}
-        <View className="mb-6">
-          <TouchableOpacity
-            className="py-4 px-4 rounded-xl bg-primary-500 items-center mb-3"
-            onPress={() => {
-              // TODO: Implement Share Live Location
-              console.log("Share Live Location");
-            }}
-          >
-            <Text className="text-base font-inter-semibold text-white">
-              Share Live Location (1hr)
-            </Text>
-          </TouchableOpacity>
+        {/* Location Sharing Card */}
+        <LocationSharingCard
+          isSharing={isSharing}
+          oppositeUserSharing={oppositeUserSharing}
+          myDistance={myDistance}
+          oppositeUserDistance={oppositeUserDistance}
+          oppositeUserName={oppositeUser?.displayName}
+          onStartSharing={startSharing}
+          onStopSharing={stopSharing}
+          isStarting={isStarting}
+          isStopping={isStopping}
+        />
 
-          <TouchableOpacity
-            className="py-4 px-4 rounded-xl border border-error-300 bg-white items-center"
-            onPress={() => {
-              // TODO: Implement Cancel Transaction
-              console.log("Cancel Transaction");
-            }}
-          >
-            <Text className="text-base font-inter-semibold text-error-600">
-              Cancel Transaction
+        {/* Cancellation Warning - Show when within 1 hour of meetup */}
+        {!canCancelTransaction && transaction.scheduledMeetupAt && (
+          <View className="bg-warning-50 border border-warning-200 rounded-2xl p-4 mb-4">
+            <Text className="text-sm font-inter-semibold text-warning-800 mb-1">
+              Cancellation Not Allowed
             </Text>
-          </TouchableOpacity>
-        </View>
+            <Text className="text-xs font-inter-regular text-warning-700">
+              Transactions cannot be cancelled within 1 hour of the scheduled
+              meetup time.
+            </Text>
+          </View>
+        )}
+
+        {/* Cancel Transaction Button */}
+        <TouchableOpacity
+          className={`py-4 px-4 rounded-xl border items-center mb-6 ${
+            canCancelTransaction
+              ? "border-error-300 bg-white"
+              : "border-neutral-200 bg-neutral-100"
+          }`}
+          onPress={() => {
+            if (canCancelTransaction) {
+              setShowCancellationModal(true);
+            } else {
+              Alert.alert(
+                "Cannot Cancel",
+                "Transactions cannot be cancelled within 1 hour of the scheduled meetup time."
+              );
+            }
+          }}
+          disabled={!canCancelTransaction}
+        >
+          <Text
+            className={`text-base font-inter-semibold ${
+              canCancelTransaction ? "text-error-600" : "text-neutral-400"
+            }`}
+          >
+            Cancel Transaction
+          </Text>
+        </TouchableOpacity>
       </BottomSheetScrollView>
+
+      {/* Transaction Cancellation Modal */}
+      <TransactionCancellationModal
+        visible={showCancellationModal}
+        onClose={() => setShowCancellationModal(false)}
+        onConfirm={handleCancelTransaction}
+        isLoading={isCancelling}
+      />
     </BottomSheetModal>
   );
 }
