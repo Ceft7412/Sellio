@@ -297,7 +297,7 @@ export default function FavoritesScreen({ navigation }: any) {
   // Empty state
   if (!favorites || favorites.length === 0) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50" edges={["top"]}>
+      <View className="flex-1 bg-neutral-50">
         {/* Header */}
         <View className="flex-row items-center px-6 py-4 bg-white border-b border-neutral-100">
           <TouchableOpacity
@@ -330,13 +330,13 @@ export default function FavoritesScreen({ navigation }: any) {
             </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // Main content with favorites
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <View className="flex-1 bg-white">
       {/* Header */}
       <View className="flex-row items-center px-6 py-4 bg-white border-b border-neutral-100">
         <TouchableOpacity
@@ -375,6 +375,6 @@ export default function FavoritesScreen({ navigation }: any) {
         }}
         showsVerticalScrollIndicator={false}
       />
-    </SafeAreaView>
+    </View>
   );
 }

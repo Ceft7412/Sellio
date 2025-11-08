@@ -429,7 +429,7 @@ export default function EditProfileScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-neutral-50">
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 py-4 bg-white border-b border-neutral-100">
         <View className="flex-row items-center flex-1">
@@ -704,6 +704,6 @@ export default function EditProfileScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

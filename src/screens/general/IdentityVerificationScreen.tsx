@@ -324,7 +324,7 @@ export default function IdentityVerificationScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       {/* Header */}
       <View className="bg-white px-6 py-4 border-b border-neutral-100 ">
         <View className="flex-row items-center justify-between">
@@ -657,6 +657,6 @@ export default function IdentityVerificationScreen({ navigation }: any) {
           navigation.goBack();
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }

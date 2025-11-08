@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useRef } from "react";
-import { Alert, StatusBar } from "react-native";
+import { Alert } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import HomeScreen from "./HomeScreen";
 import { HomeFilledIcon } from "../../components/icons/fill/home-fill";
@@ -18,7 +19,10 @@ import { PersonFilledIcon } from "../../components/icons/fill/person-fill";
 import { PersonOutlineIcon } from "../../components/icons/outline/person-outline";
 import { useAuthStore } from "../../store/authStore";
 import SellBottomSheet from "../../components/bottomsheets/SellBottomSheet";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const Tab = createBottomTabNavigator();
 
@@ -81,113 +85,116 @@ export default function MainTabs({ navigation }: any) {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={"#fff"} />
-      <Tab.Navigator
-        screenOptions={{
-          sceneStyle: { backgroundColor: "white" },
-          headerShown: false,
-          tabBarStyle: {
-            height: insets.bottom + 50,
-            paddingBottom: 5,
-          },
-          tabBarLabelStyle: {
-            fontFamily: "Inter_600SemiBold",
-          },
-        }}
-      >
-        <Tab.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{
+      <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+        <StatusBar />
+        <Tab.Navigator
+          screenOptions={{
             headerShown: false,
-            tabBarIcon: ({ color, size, focused }) =>
-              focused ? (
-                <HomeFilledIcon color={color} size={24} />
-              ) : (
-                <HomeOutlineIcon color={color} size={24} />
-              ),
-
-            tabBarActiveTintColor: "#0D3F81",
-            tabBarInactiveTintColor: "#374151",
+            tabBarStyle: {
+              height: insets.bottom + 50,
+              paddingBottom: 5,
+              elevation: 0,
+              borderWidth: 0,
+            },
+            tabBarLabelStyle: {
+              fontFamily: "Inter_600SemiBold",
+            },
           }}
+        >
+          <Tab.Screen
+            name="Home"
+            component={HomeScreen}
+            options={{
+              headerShown: false,
+              tabBarIcon: ({ color, size, focused }) =>
+                focused ? (
+                  <HomeFilledIcon color={color} size={24} />
+                ) : (
+                  <HomeOutlineIcon color={color} size={24} />
+                ),
+
+              tabBarActiveTintColor: "#0D3F81",
+              tabBarInactiveTintColor: "#374151",
+            }}
+          />
+          <Tab.Screen
+            name="Category"
+            component={CategoryScreen}
+            options={{
+              headerShown: false,
+              tabBarIcon: ({ color, size, focused }) =>
+                focused ? (
+                  <GridFilledIcon color={color} size={24} />
+                ) : (
+                  <GridRegularIcon color={color} size={24} />
+                ),
+
+              tabBarActiveTintColor: "#0D3F81",
+              tabBarInactiveTintColor: "#374151",
+            }}
+          />
+          <Tab.Screen
+            name="Sell"
+            component={SellScreen}
+            listeners={{
+              tabPress: handleSellTabPress,
+            }}
+            options={{
+              headerShown: false,
+              tabBarIcon: ({ color, size, focused }) =>
+                focused ? (
+                  <AddCircleRegularIcon color={color} size={24} />
+                ) : (
+                  <AddCircleRegularIcon color={color} size={24} />
+                ),
+
+              tabBarActiveTintColor: "#0D3F81",
+              tabBarInactiveTintColor: "#374151",
+            }}
+          />
+          <Tab.Screen
+            name="Notification"
+            component={NotificationScreen}
+            listeners={{
+              tabPress: handleNotificationTabPress,
+            }}
+            options={{
+              headerShown: false,
+              tabBarIcon: ({ color, size, focused }) =>
+                focused ? (
+                  <AlertFilledIcon color={color} size={24} />
+                ) : (
+                  <AlertRegularIcon color={color} size={24} />
+                ),
+
+              tabBarActiveTintColor: "#0D3F81",
+              tabBarInactiveTintColor: "#374151",
+            }}
+          />
+          <Tab.Screen
+            name="Account"
+            component={AccountScreen}
+            options={{
+              headerShown: false,
+              tabBarIcon: ({ color, size, focused }) =>
+                focused ? (
+                  <PersonFilledIcon color={color} size={24} />
+                ) : (
+                  <PersonOutlineIcon color={color} size={24} />
+                ),
+
+              tabBarActiveTintColor: "#0D3F81",
+              tabBarInactiveTintColor: "#374151",
+            }}
+          />
+        </Tab.Navigator>
+
+        {/* Sell Bottom Sheet - Only shown when user taps Sell tab and is verified */}
+        <SellBottomSheet
+          ref={sellBottomSheetRef}
+          onCategorySelect={handleCategorySelect}
         />
-        <Tab.Screen
-          name="Category"
-          component={CategoryScreen}
-          options={{
-            headerShown: false,
-            tabBarIcon: ({ color, size, focused }) =>
-              focused ? (
-                <GridFilledIcon color={color} size={24} />
-              ) : (
-                <GridRegularIcon color={color} size={24} />
-              ),
-
-            tabBarActiveTintColor: "#0D3F81",
-            tabBarInactiveTintColor: "#374151",
-          }}
-        />
-        <Tab.Screen
-          name="Sell"
-          component={SellScreen}
-          listeners={{
-            tabPress: handleSellTabPress,
-          }}
-          options={{
-            headerShown: false,
-            tabBarIcon: ({ color, size, focused }) =>
-              focused ? (
-                <AddCircleRegularIcon color={color} size={24} />
-              ) : (
-                <AddCircleRegularIcon color={color} size={24} />
-              ),
-
-            tabBarActiveTintColor: "#0D3F81",
-            tabBarInactiveTintColor: "#374151",
-          }}
-        />
-        <Tab.Screen
-          name="Notification"
-          component={NotificationScreen}
-          listeners={{
-            tabPress: handleNotificationTabPress,
-          }}
-          options={{
-            headerShown: false,
-            tabBarIcon: ({ color, size, focused }) =>
-              focused ? (
-                <AlertFilledIcon color={color} size={24} />
-              ) : (
-                <AlertRegularIcon color={color} size={24} />
-              ),
-
-            tabBarActiveTintColor: "#0D3F81",
-            tabBarInactiveTintColor: "#374151",
-          }}
-        />
-        <Tab.Screen
-          name="Account"
-          component={AccountScreen}
-          options={{
-            headerShown: false,
-            tabBarIcon: ({ color, size, focused }) =>
-              focused ? (
-                <PersonFilledIcon color={color} size={24} />
-              ) : (
-                <PersonOutlineIcon color={color} size={24} />
-              ),
-
-            tabBarActiveTintColor: "#0D3F81",
-            tabBarInactiveTintColor: "#374151",
-          }}
-        />
-      </Tab.Navigator>
-
-      {/* Sell Bottom Sheet - Only shown when user taps Sell tab and is verified */}
-      <SellBottomSheet
-        ref={sellBottomSheetRef}
-        onCategorySelect={handleCategorySelect}
-      />
+      </SafeAreaView>
     </>
   );
 }

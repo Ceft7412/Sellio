@@ -15,7 +15,6 @@ import {
   Modal,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { ArrowLeftOutlineIcon } from "../../components/icons/outline/arrow-left-outline";
 import { HeartRegularIcon } from "../../components/icons/outline/heart-outline";
@@ -39,6 +38,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { bidsAPI, productsAPI } from "../../constants/axios";
 import BiddersBottomSheet from "../../components/bottomsheets/BiddersBottomSheet";
+import { CheckmarkCircleRegularIcon } from "../../components/icons/outline/check-mark-outline";
 
 const { width } = Dimensions.get("window");
 
@@ -719,7 +719,7 @@ View full details on Sellio app!`;
   // Loading state
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-6 py-4 bg-white border-b border-neutral-100">
           <TouchableOpacity
             onPress={handleBack}
@@ -730,14 +730,14 @@ View full details on Sellio app!`;
           </TouchableOpacity>
         </View>
         <ProductDetailsLoadingState />
-      </SafeAreaView>
+      </View>
     );
   }
 
   // Error state
   if (error || !product) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-6 py-4 bg-white border-b border-neutral-100">
           <TouchableOpacity
             onPress={handleBack}
@@ -763,12 +763,12 @@ View full details on Sellio app!`;
             </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <KeyboardAvoidingView
         behavior="padding"
         className="flex-1"
@@ -906,11 +906,6 @@ View full details on Sellio app!`;
                   {product.location}
                 </Text>
               </View>
-              <View className="bg-success-100 px-2 py-1 rounded-lg">
-                <Text className="text-xs font-inter-semiBold text-success-700">
-                  {product.condition}
-                </Text>
-              </View>
             </View>
 
             {/* Seller Info */}
@@ -942,11 +937,7 @@ View full details on Sellio app!`;
                     {product.seller.name}
                   </Text>
                   {product.seller.verified && (
-                    <View className="bg-success-100 px-2 py-0.5 rounded-full">
-                      <Text className="text-xs font-inter-semiBold text-success-700">
-                        ✓ Verified
-                      </Text>
-                    </View>
+                    <CheckmarkCircleRegularIcon color="#10B981" size={18} />
                   )}
                 </View>
                 <View className="flex-row items-center">
@@ -975,6 +966,12 @@ View full details on Sellio app!`;
               </Text>
               <Text className="text-base font-inter-regular text-neutral-600 leading-6">
                 {product.description}
+              </Text>
+            </View>
+
+            <View className="bg-success-100 px-2 py-1 rounded-lg self-start mb-2">
+              <Text className="text-xs font-inter-semiBold text-success-700">
+                {product.condition}
               </Text>
             </View>
 
@@ -1095,7 +1092,7 @@ View full details on Sellio app!`;
           <StatusBar barStyle="light-content" />
 
           {/* Header with close button */}
-          <SafeAreaView className="absolute top-0 left-0 right-0 z-10">
+          <View className="absolute top-0 left-0 right-0 z-10">
             <View className="flex-row items-center justify-between px-6 py-4">
               <View className="flex-1">
                 <Text className="text-white font-inter-semiBold text-base">
@@ -1113,7 +1110,7 @@ View full details on Sellio app!`;
                 <XMarkRegularIcon size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-          </SafeAreaView>
+          </View>
 
           {/* Image Gallery */}
           <ScrollView
@@ -1155,6 +1152,6 @@ View full details on Sellio app!`;
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }

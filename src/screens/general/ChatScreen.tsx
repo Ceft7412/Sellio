@@ -519,7 +519,7 @@ export default function ChatScreen({
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <KeyboardAvoidingView
         behavior="padding"
         className="flex-1"
@@ -612,6 +612,6 @@ export default function ChatScreen({
           completionData={completionData}
         />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }

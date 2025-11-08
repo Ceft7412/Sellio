@@ -266,7 +266,7 @@ export default function NotificationScreen({ navigation }: any) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <View className="flex-1 bg-white">
       {/* Header */}
       <View className="px-6 py-4 border-b border-neutral-100">
         <View className="flex-row items-center justify-between mb-2">
@@ -336,8 +336,8 @@ export default function NotificationScreen({ navigation }: any) {
             />
           }
         >
-          <View className="flex-1 items-center justify-center px-6">
-            <View className="p-6 rounded-full bg-neutral-100 items-center justify-center mb-4">
+          <View className="flex-1 items-center justify-center px-6 pb-28">
+            <View className="p-6 rounded-full items-center justify-center mb-4">
               <AlertOnRegularIcon size={110} color="#6B7280" />
             </View>
             <Text className="text-xl font-inter-bold text-neutral-800 mb-2">
@@ -349,6 +349,6 @@ export default function NotificationScreen({ navigation }: any) {
           </View>
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }

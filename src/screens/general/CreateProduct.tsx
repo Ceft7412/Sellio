@@ -20,6 +20,7 @@ import { XMarkRegularIcon } from "../../components/icons/outline/xmark-outline";
 import { CameraRegularIcon } from "../../components/icons/outline/camera-outline";
 import { useRoute, RouteProp, useNavigation } from "@react-navigation/native";
 import { useCreateProduct } from "../../hooks/useProducts";
+import { ArrowLeftOutlineIcon } from "../../components/icons/outline/arrow-left-outline";
 
 // Types
 interface Category {
@@ -514,15 +515,24 @@ export default function CreateProduct() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-white">
       {/* Header */}
-      <View className="bg-white border-b border-neutral-100 px-6 py-4">
-        <Text className="text-2xl font-inter-bold text-primary-500">
-          Create Listing
-        </Text>
-        <Text className="text-sm font-inter-regular text-neutral-600 mt-1">
-          Fill in the details to list your item
-        </Text>
+      <View className="flex-row px-6 gap-4 border-b border-neutral-100">
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="w-10 h-10 rounded-full bg-neutral-100 items-center justify-center"
+          activeOpacity={0.7}
+        >
+          <ArrowLeftOutlineIcon size={20} color="#374151" />
+        </TouchableOpacity>
+        <View className="bg-white   pb-4">
+          <Text className="text-2xl font-inter-bold text-primary-500">
+            Create Listing
+          </Text>
+          <Text className="text-sm font-inter-regular text-neutral-600 mt-1">
+            Fill in the details to list your item
+          </Text>
+        </View>
       </View>
 
       <ScrollView
@@ -950,7 +960,7 @@ export default function CreateProduct() {
         ref={bottomSheetRef}
         onCategorySelect={handleCategorySelect}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

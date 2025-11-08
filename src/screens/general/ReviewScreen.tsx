@@ -146,7 +146,7 @@ export default function ReviewScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       {/* Header */}
       <View className="px-4 py-3 border-b border-neutral-200 flex-row items-center">
         <TouchableOpacity
@@ -311,6 +311,6 @@ export default function ReviewScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

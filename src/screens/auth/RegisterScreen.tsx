@@ -216,7 +216,7 @@ export default function RegisterScreen({ navigation }: any) {
   const placeholderColor = useMemo(() => "#9CA3AF", []);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <KeyboardAwareScrollView>
         <View className="flex-1 px-6 pt-4 pb-8">
           {/* Back Button Header */}
@@ -467,6 +467,6 @@ export default function RegisterScreen({ navigation }: any) {
           </View>
         </View>
       </KeyboardAwareScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

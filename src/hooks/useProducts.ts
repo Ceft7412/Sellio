@@ -92,7 +92,7 @@ export const useCreateProduct = () => {
   });
 };
 
-// Toggle favorite mutation
+// Toggle favorite mutation with optimistic updates
 export const useToggleFavorite = () => {
   const queryClient = useQueryClient();
 
@@ -101,11 +101,63 @@ export const useToggleFavorite = () => {
       const response = await productsAPI.toggleFavorite(productId);
       return response.data;
     },
-    onSuccess: (data, productId) => {
-      // Invalidate products to update favorite status
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+    onMutate: async (productId: string) => {
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["product", productId] });
+      await queryClient.cancelQueries({ queryKey: ["favorites"] });
+      await queryClient.cancelQueries({ queryKey: ["products"] });
+
+      // Snapshot the previous values
+      const previousProduct = queryClient.getQueryData(["product", productId]);
+      const previousFavorites = queryClient.getQueryData(["favorites"]);
+      const previousProducts = queryClient.getQueryData(["products"]);
+
+      // Optimistically update the single product's favorite status
+      queryClient.setQueryData(["product", productId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          isFavorited: !old.isFavorited,
+        };
+      });
+
+      // Optimistically update favorites list
+      queryClient.setQueryData(["favorites"], (old: any) => {
+        if (!old) return old;
+
+        // Check if product is already in favorites
+        const productIndex = old.findIndex((fav: any) => fav.id === productId);
+
+        if (productIndex !== -1) {
+          // Remove from favorites (unfavorite)
+          return old.filter((fav: any) => fav.id !== productId);
+        } else {
+          // If adding to favorites, we don't have full product data here
+          // So we'll let the server response handle adding it
+          return old;
+        }
+      });
+
+      // Return context with previous values for rollback
+      return { previousProduct, previousFavorites, previousProducts };
+    },
+    onError: (_err, productId, context: any) => {
+      // Rollback to previous values on error
+      if (context?.previousProduct) {
+        queryClient.setQueryData(["product", productId], context.previousProduct);
+      }
+      if (context?.previousFavorites) {
+        queryClient.setQueryData(["favorites"], context.previousFavorites);
+      }
+      if (context?.previousProducts) {
+        queryClient.setQueryData(["products"], context.previousProducts);
+      }
+    },
+    onSettled: (_data, _error, productId) => {
+      // Always refetch to ensure we have the correct server state
       queryClient.invalidateQueries({ queryKey: ["product", productId] });
       queryClient.invalidateQueries({ queryKey: ["favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 };

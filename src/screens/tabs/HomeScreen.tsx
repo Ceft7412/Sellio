@@ -20,6 +20,7 @@ import {
   ProductsGridLoadingState,
 } from "../../components/states/loading";
 import { useUnreadMessagesCount } from "../../hooks/useMessages";
+import { CheckmarkCircleRegularIcon } from "../../components/icons/outline/check-mark-outline";
 
 // Types
 type ProductType = "fixed" | "negotiable" | "bidding";
@@ -181,11 +182,7 @@ const ProductCard: React.FC<{ product: Product; onPress: () => void }> = ({
                 {product.seller.name}
               </Text>
               {product.seller.verified && (
-                <View className="bg-primary-50 px-1.5 py-0.5 rounded-full">
-                  <Text className="text-[10px] font-inter-semiBold text-primary-500">
-                    ✓
-                  </Text>
-                </View>
+                <CheckmarkCircleRegularIcon color="#10B981" size={18} />
               )}
             </View>
           </View>
@@ -295,9 +292,9 @@ export default function HomeScreen({ navigation }: any) {
   const rightColumnProducts = products.filter((_, index) => index % 2 === 1);
 
   return (
-    <View className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="bg-white px-6 py-2 border-b border-neutral-100 pt-12">
+      <View className="bg-white px-6 py-2 border-b border-neutral-100">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-2xl font-inter-bold text-primary-500">
             Sellio

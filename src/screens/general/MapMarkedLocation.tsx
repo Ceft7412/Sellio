@@ -62,7 +62,12 @@ export default function MapMarkedLocation({
 
   // --- MEMOIZED STATE ---
   // Compute participant-specific data for map markers
-  const { participant1Update, participant2Update, participant1Info, participant2Info } = useMemo(() => {
+  const {
+    participant1Update,
+    participant2Update,
+    participant1Info,
+    participant2Info,
+  } = useMemo(() => {
     if (!session || !conversationData || !currentAuthUser) {
       return {
         participant1Update: null,
@@ -308,7 +313,7 @@ export default function MapMarkedLocation({
           })}
       </MapView>
 
-      <SafeAreaView className="absolute top-0 left-0 right-0">
+      <View className="absolute top-0 left-0 right-0">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           className="ml-4 mt-2 w-10 h-10 rounded-full bg-white items-center justify-center shadow-lg"
@@ -322,7 +327,7 @@ export default function MapMarkedLocation({
         >
           <ChevronLeftRegularIcon size={24} color="#1F2937" />
         </TouchableOpacity>
-      </SafeAreaView>
+      </View>
 
       <TransactionDetailsBottomSheet
         visible={bottomSheetVisible}

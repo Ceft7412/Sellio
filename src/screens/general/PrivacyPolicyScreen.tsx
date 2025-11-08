@@ -1,11 +1,24 @@
-import { StyleSheet, Text, View, ScrollView } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ArrowLeftOutlineIcon } from "../../components/icons/outline/arrow-left-outline";
 
 export default function PrivacyPolicyScreen({ navigation }: any) {
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView style={styles.container}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="w-10 h-10 mx-4 rounded-full bg-neutral-100 items-center justify-center"
+        >
+          <ArrowLeftOutlineIcon size={20} color="#374151" />
+        </TouchableOpacity>
         <View style={styles.content}>
           <Text style={styles.title}>Privacy Policy</Text>
           <Text style={styles.lastUpdated}>Last Updated: January 2025</Text>
@@ -102,7 +115,7 @@ export default function PrivacyPolicyScreen({ navigation }: any) {
           <View style={styles.footer} />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

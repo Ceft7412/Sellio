@@ -195,7 +195,7 @@ export const categoriesAPI = {
 };
 
 export const userAPI = {
-  verifyIdentity: () => axiosInstance.put("/user/verify-identity"),
+  verifyIdentity: () => axiosInstance.put("/users/verify-identity"),
 };
 
 // Offers API

@@ -305,7 +305,7 @@ export default function ReportUserScreen({
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       {/* Header */}
       <View className="px-4 py-4 border-b border-neutral-200">
         <View className="flex-row items-center">
@@ -477,6 +477,6 @@ export default function ReportUserScreen({
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

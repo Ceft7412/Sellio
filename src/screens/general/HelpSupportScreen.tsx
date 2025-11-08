@@ -88,7 +88,7 @@ const HelpSupportScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-neutral-50">
       {/* Header */}
       <View className="bg-white border-b border-neutral-200 px-6 py-4">
         <View className="flex-row items-center">
@@ -312,7 +312,7 @@ const HelpSupportScreen = () => {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

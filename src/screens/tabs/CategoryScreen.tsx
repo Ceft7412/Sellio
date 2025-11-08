@@ -110,7 +110,11 @@ export default function CategoryScreen({ navigation }: any) {
   const handleCategoryPress = (category: Category) => {
     navigation.navigate("general", {
       screen: "categoryProducts",
-      params: { categoryId: category.id, categoryName: category.name },
+      params: {
+        categoryId: category.id,
+        categoryName: category.name,
+        isSubCategory: category.parentId !== null, // true if it's a subcategory
+      },
     } as never);
   };
 
@@ -121,7 +125,7 @@ export default function CategoryScreen({ navigation }: any) {
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["left", "right"]}>
       {/* Header */}
-      <View className="bg-white px-6 pt-12 pb-2 border-b border-neutral-100">
+      <View className="bg-white px-6  pb-2 border-b border-neutral-100">
         <Text className="text-2xl font-inter-bold text-primary-500 mb-4">
           Categories
         </Text>
@@ -162,7 +166,7 @@ export default function CategoryScreen({ navigation }: any) {
         {error && !isLoading && (
           <View className="items-center justify-center py-20 px-6">
             <Text className="text-5xl mb-4">⚠️</Text>
-            <Text className="text-lg font-inter-semiBold text-neutral-800 mb-2">
+            <Text className="text-lg text-center font-inter-semiBold text-neutral-800 mb-2">
               {error}
             </Text>
             <TouchableOpacity

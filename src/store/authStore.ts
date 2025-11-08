@@ -5,6 +5,14 @@ import {
   registerForPushNotificationsAsync,
   unregisterPushNotifications,
 } from "../utils/pushNotifications";
+import { QueryClient } from "@tanstack/react-query";
+
+// Global query client instance for invalidating queries
+let queryClientInstance: QueryClient | null = null;
+
+export const setQueryClient = (client: QueryClient) => {
+  queryClientInstance = client;
+};
 
 // User type
 interface User {
@@ -105,6 +113,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Update state
       set({ token: newToken, user: newUser });
 
+      // Clear all cached queries for new user
+      if (queryClientInstance) {
+        queryClientInstance.clear();
+      }
+
       // Register for push notifications (optional)
       const pushToken = await registerForPushNotificationsAsync();
       if (pushToken) {
@@ -135,6 +148,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Update state
       set({ token: newToken, user: newUser });
 
+      // Invalidate all cached queries when switching users
+      if (queryClientInstance) {
+        queryClientInstance.clear();
+      }
+
       // Register for push notifications (optional)
       const pushToken = await registerForPushNotificationsAsync();
       if (pushToken) {
@@ -163,6 +181,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Update state
       set({ token: newToken, user: newUser });
 
+      // Clear all cached queries when switching users
+      if (queryClientInstance) {
+        queryClientInstance.clear();
+      }
+
       // Register for push notifications (optional)
       const pushToken = await registerForPushNotificationsAsync();
       if (pushToken) {
@@ -190,6 +213,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       // Clear token from secure store
       await SecureStore.deleteItemAsync("authToken");
+
+      // Clear all cached queries on logout
+      if (queryClientInstance) {
+        queryClientInstance.clear();
+      }
 
       // Clear state
       set({ token: null, user: null, pushToken: null });

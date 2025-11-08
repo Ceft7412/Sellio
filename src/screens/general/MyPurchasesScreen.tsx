@@ -278,7 +278,7 @@ export default function MyPurchasesScreen({ navigation }: { navigation: any }) {
   const purchases: Purchase[] = purchasesData || [];
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-neutral-50">
       {/* Header */}
       <View className="bg-white px-4 py-4 border-b border-neutral-100">
         <View className="flex-row items-center">
@@ -362,6 +362,6 @@ export default function MyPurchasesScreen({ navigation }: { navigation: any }) {
         onClose={() => setModalVisible(false)}
         completionData={selectedCompletionData}
       />
-    </SafeAreaView>
+    </View>
   );
 }

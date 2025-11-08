@@ -189,7 +189,7 @@ export default function UserProfileScreen({ navigation }: { navigation: any }) {
   const { user, sellerRating, buyerRating, sellerReviews, buyerReviews } = data;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-neutral-50">
       {/* Header */}
       <View className="px-4 py-3 bg-white border-b border-neutral-200 flex-row items-center">
         <TouchableOpacity
@@ -400,6 +400,6 @@ export default function UserProfileScreen({ navigation }: { navigation: any }) {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

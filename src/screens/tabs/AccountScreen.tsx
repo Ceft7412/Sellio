@@ -169,14 +169,14 @@ export default function AccountScreen({ navigation }: any) {
 
   // Authenticated State
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <View className="flex-1 bg-white">
       <ScrollView
         contentContainerClassName="flex-grow"
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-1 pb-8">
           {/* Header */}
-          <View className="px-6 pt-8 pb-6 bg-white">
+          <View className="px-6 pb-6 bg-white">
             <Text className="text-3xl font-inter-bold text-primary-500 mb-2">
               Account
             </Text>
@@ -296,6 +296,6 @@ export default function AccountScreen({ navigation }: any) {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

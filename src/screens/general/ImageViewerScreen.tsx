@@ -29,7 +29,7 @@ export default function ImageViewerScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <View style={styles.safeArea}>
         {/* Close Button */}
         <TouchableOpacity
           onPress={handleClose}
@@ -40,7 +40,7 @@ export default function ImageViewerScreen() {
             <CloseOutlineIcon size={24} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
-      </SafeAreaView>
+      </View>
 
       {/* Full Screen Image */}
       <ScrollView

@@ -18,6 +18,7 @@ import {
   BottomSheetScrollView,
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
+  BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { ArrowLeftOutlineIcon } from "../icons/outline/arrow-left-outline";
 import { ChevronRightRegularIcon } from "../icons/outline/chevron-outline";
@@ -162,7 +163,6 @@ const SellBottomSheet = forwardRef<BottomSheetModal, SellBottomSheetProps>(
     return (
       <BottomSheetModal
         ref={ref}
-        index={0}
         snapPoints={snapPoints}
         backdropComponent={renderBackdrop}
         enableDynamicSizing={true}
@@ -171,121 +171,123 @@ const SellBottomSheet = forwardRef<BottomSheetModal, SellBottomSheetProps>(
         handleIndicatorStyle={styles.handleIndicator}
         backgroundStyle={styles.background}
       >
-        {/* Header */}
-        <View className="px-6 py-4 border-b border-neutral-100">
-          <View className="flex-row items-center">
-            {selectedParentCategory && (
-              <TouchableOpacity
-                onPress={handleBack}
-                className="mr-3 w-10 h-10 rounded-full bg-neutral-100 items-center justify-center"
-                activeOpacity={0.7}
-              >
-                <ArrowLeftOutlineIcon size={20} color="#374151" />
-              </TouchableOpacity>
-            )}
-            <View className="flex-1">
-              <Text className="text-xl font-inter-bold text-primary-500">
-                {selectedParentCategory
-                  ? selectedParentCategory.name
-                  : "Select Category"}
-              </Text>
-              <Text className="text-sm font-inter-regular text-neutral-600 mt-0.5">
-                {selectedParentCategory
-                  ? "Choose a subcategory"
-                  : "What are you selling?"}
-              </Text>
+        <BottomSheetView>
+          {/* Header */}
+          <View className="px-6 py-4 border-b border-neutral-100">
+            <View className="flex-row items-center">
+              {selectedParentCategory && (
+                <TouchableOpacity
+                  onPress={handleBack}
+                  className="mr-3 w-10 h-10 rounded-full bg-neutral-100 items-center justify-center"
+                  activeOpacity={0.7}
+                >
+                  <ArrowLeftOutlineIcon size={20} color="#374151" />
+                </TouchableOpacity>
+              )}
+              <View className="flex-1">
+                <Text className="text-xl font-inter-bold text-primary-500">
+                  {selectedParentCategory
+                    ? selectedParentCategory.name
+                    : "Select Category"}
+                </Text>
+                <Text className="text-sm font-inter-regular text-neutral-600 mt-0.5">
+                  {selectedParentCategory
+                    ? "Choose a subcategory"
+                    : "What are you selling?"}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* Category List */}
-        <BottomSheetScrollView
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Loading State */}
-          {isLoading && (
-            <View className="items-center justify-center py-12 px-6">
-              <ActivityIndicator size="large" color="#0D3F81" />
-              <Text className="text-sm font-inter-regular text-neutral-600 mt-3">
-                Loading categories...
-              </Text>
-            </View>
-          )}
-
-          {/* Error State */}
-          {error && !isLoading && (
-            <View className="items-center justify-center py-12 px-6">
-              <Text className="text-4xl mb-3">⚠️</Text>
-              <Text className="text-base font-inter-semiBold text-neutral-800 mb-2">
-                {error}
-              </Text>
-              <TouchableOpacity
-                onPress={fetchCategories}
-                className="mt-4 px-6 py-3 bg-primary-500 rounded-xl"
-              >
-                <Text className="text-white font-inter-semiBold">
-                  Try Again
+          {/* Category List */}
+          <BottomSheetScrollView
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Loading State */}
+            {isLoading && (
+              <View className="items-center justify-center py-12 px-6">
+                <ActivityIndicator size="large" color="#0D3F81" />
+                <Text className="text-sm font-inter-regular text-neutral-600 mt-3">
+                  Loading categories...
                 </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+              </View>
+            )}
 
-          {/* Categories List */}
-          {!isLoading && !error && (
-            <>
-              {!selectedParentCategory ? (
-                // Show parent categories
-                <View>
-                  {parentCategories.length === 0 ? (
-                    <View className="items-center justify-center py-12 px-6">
-                      <Text className="text-4xl mb-3">📦</Text>
-                      <Text className="text-base font-inter-semiBold text-neutral-800 mb-2">
-                        No categories available
-                      </Text>
-                      <Text className="text-sm font-inter-regular text-neutral-500 text-center">
-                        Please check back later.
-                      </Text>
-                    </View>
-                  ) : (
-                    parentCategories.map((category) => (
-                      <CategoryItem
-                        key={category.id}
-                        category={category}
-                        onPress={() => handleParentCategoryPress(category)}
-                        showChevron={true}
-                      />
-                    ))
-                  )}
-                </View>
-              ) : (
-                // Show subcategories
-                <View>
-                  {subcategories.length === 0 ? (
-                    <View className="items-center justify-center py-12 px-6">
-                      <Text className="text-4xl mb-3">📦</Text>
-                      <Text className="text-base font-inter-semiBold text-neutral-800 mb-2">
-                        No subcategories
-                      </Text>
-                      <Text className="text-sm font-inter-regular text-neutral-500 text-center">
-                        This category doesn't have any subcategories yet.
-                      </Text>
-                    </View>
-                  ) : (
-                    subcategories.map((category) => (
-                      <CategoryItem
-                        key={category.id}
-                        category={category}
-                        onPress={() => handleSubcategoryPress(category)}
-                        showChevron={false}
-                      />
-                    ))
-                  )}
-                </View>
-              )}
-            </>
-          )}
-        </BottomSheetScrollView>
+            {/* Error State */}
+            {error && !isLoading && (
+              <View className="items-center justify-center py-12 px-6">
+                <Text className="text-4xl mb-3">⚠️</Text>
+                <Text className="text-base font-inter-semiBold text-neutral-800 mb-2">
+                  {error}
+                </Text>
+                <TouchableOpacity
+                  onPress={fetchCategories}
+                  className="mt-4 px-6 py-3 bg-primary-500 rounded-xl"
+                >
+                  <Text className="text-white font-inter-semiBold">
+                    Try Again
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Categories List */}
+            {!isLoading && !error && (
+              <>
+                {!selectedParentCategory ? (
+                  // Show parent categories
+                  <View>
+                    {parentCategories.length === 0 ? (
+                      <View className="items-center justify-center py-12 px-6">
+                        <Text className="text-4xl mb-3">📦</Text>
+                        <Text className="text-base font-inter-semiBold text-neutral-800 mb-2">
+                          No categories available
+                        </Text>
+                        <Text className="text-sm font-inter-regular text-neutral-500 text-center">
+                          Please check back later.
+                        </Text>
+                      </View>
+                    ) : (
+                      parentCategories.map((category) => (
+                        <CategoryItem
+                          key={category.id}
+                          category={category}
+                          onPress={() => handleParentCategoryPress(category)}
+                          showChevron={true}
+                        />
+                      ))
+                    )}
+                  </View>
+                ) : (
+                  // Show subcategories
+                  <View>
+                    {subcategories.length === 0 ? (
+                      <View className="items-center justify-center py-12 px-6">
+                        <Text className="text-4xl mb-3">📦</Text>
+                        <Text className="text-base font-inter-semiBold text-neutral-800 mb-2">
+                          No subcategories
+                        </Text>
+                        <Text className="text-sm font-inter-regular text-neutral-500 text-center">
+                          This category doesn't have any subcategories yet.
+                        </Text>
+                      </View>
+                    ) : (
+                      subcategories.map((category) => (
+                        <CategoryItem
+                          key={category.id}
+                          category={category}
+                          onPress={() => handleSubcategoryPress(category)}
+                          showChevron={false}
+                        />
+                      ))
+                    )}
+                  </View>
+                )}
+              </>
+            )}
+          </BottomSheetScrollView>
+        </BottomSheetView>
       </BottomSheetModal>
     );
   }
@@ -302,7 +304,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   contentContainer: {
-    paddingBottom: 24,
+    paddingBottom: 100,
   },
 });
 

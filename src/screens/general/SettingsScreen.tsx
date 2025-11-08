@@ -61,25 +61,26 @@ const SettingsScreen = ({ navigation }: { navigation: any }) => {
     navigation.goBack();
   }, []);
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 px-4">
-      <StatusBar barStyle={"dark-content"} />
-      <TouchableOpacity
-        onPress={handleGoBack}
-        className="mb-8 mt-4 self-start flex-row gap-4 items-center"
-        activeOpacity={0.7}
-      >
-        <View className="w-10 h-10 rounded-full bg-neutral-100 items-center justify-center">
-          <ArrowLeftOutlineIcon size={20} color="#374151" />
-        </View>
-        <Text className="font-inter-bold text-xl">Settings</Text>
-      </TouchableOpacity>
-      <View className="w-full gap-3 bg-white rounded-md p-4 shadow-sm">
+    <View className="flex-1 bg-gray-50 ">
+      <View className="flex-row items-center py-4 px-4 gap-4 mb-4 bg-white">
+        <TouchableOpacity
+          onPress={handleGoBack}
+          className="self-start flex-row gap-4 items-center"
+          activeOpacity={0.7}
+        >
+          <View className="w-10 h-10 rounded-full bg-neutral-100 items-center justify-center">
+            <ArrowLeftOutlineIcon size={20} color="#374151" />
+          </View>
+        </TouchableOpacity>
+        <Text className="font-inter-bold text-xl text-primary-500">
+          Settings
+        </Text>
+      </View>
+
+      <View className=" gap-3 bg-white rounded-md p-4 shadow-sm mx-4">
         {settingsItems.map((item, index) => renderItem(item, index))}
       </View>
-      <Text className="w-full text-center mt-12 text-gray-500">
-        Version 1.0.0
-      </Text>
-    </SafeAreaView>
+    </View>
   );
 };
 

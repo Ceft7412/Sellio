@@ -145,17 +145,21 @@ export default function CategoryProductsScreen({
   navigation: any;
   route: any;
 }) {
-  const { categoryId, categoryName } = route.params || {};
+  const { categoryId, categoryName, isSubCategory } = route.params || {};
 
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch products filtered by category
+  // Fetch products filtered by category or subcategory
+  const queryParams = isSubCategory
+    ? { sub_category: categoryId, limit: 50, offset: 0 }
+    : { category: categoryId, limit: 50, offset: 0 };
+
   const {
     data: productsData,
     isLoading,
     error,
     refetch,
-  } = useProducts({ category: categoryId, limit: 50, offset: 0 });
+  } = useProducts(queryParams);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -196,7 +200,7 @@ export default function CategoryProductsScreen({
   const rightColumnProducts = products.filter((_, index) => index % 2 === 1);
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-neutral-50">
       {/* Header */}
       <View className="bg-white px-4 py-4 border-b border-neutral-100">
         <View className="flex-row items-center">
@@ -288,6 +292,6 @@ export default function CategoryProductsScreen({
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

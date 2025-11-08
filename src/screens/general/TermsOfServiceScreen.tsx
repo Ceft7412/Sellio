@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TermsOfServiceScreen({ navigation }: any) {
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.title}>Terms of Service</Text>
@@ -137,7 +137,7 @@ export default function TermsOfServiceScreen({ navigation }: any) {
           <View style={styles.footer} />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

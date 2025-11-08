@@ -70,7 +70,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
 
   if (emailSent) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-1 bg-white">
         <View className="flex-1 px-6 pt-4 pb-8 justify-center items-center">
           {/* Success Icon - You can replace with a custom icon */}
           <View className="w-20 h-20 rounded-full bg-success-50 items-center justify-center mb-6">
@@ -100,12 +100,12 @@ export default function ForgotPasswordScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <KeyboardAwareScrollView showsVerticalScrollIndicator={false}>
         <View className="flex-1 px-6 pt-4 pb-8">
           {/* Back Button Header */}
@@ -179,6 +179,6 @@ export default function ForgotPasswordScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

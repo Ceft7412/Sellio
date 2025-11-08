@@ -227,7 +227,7 @@ export default function SearchScreen({ navigation }: { navigation: any }) {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-neutral-50">
       {/* Header */}
       <View className="bg-white px-4 py-4 border-b border-neutral-100">
         <View className="flex-row items-center mb-3">
@@ -237,7 +237,7 @@ export default function SearchScreen({ navigation }: { navigation: any }) {
           >
             <ChevronLeftRegularIcon size={24} color="#1F2937" />
           </TouchableOpacity>
-          <Text className="text-xl font-inter-bold text-neutral-900">
+          <Text className="text-xl font-inter-bold text-primary-500">
             Search Products
           </Text>
         </View>
@@ -291,9 +291,7 @@ export default function SearchScreen({ navigation }: { navigation: any }) {
           <View className="py-20 items-center px-6">
             <SearchRegularIcon size={100} color="#6B7280" />
             <Text className="text-lg font-inter-semiBold text-neutral-800 mb-2 mt-4">
-              {debouncedQuery.trim()
-                ? "No products found"
-                : "Start searching"}
+              {debouncedQuery.trim() ? "No products found" : "Start searching"}
             </Text>
             <Text className="text-sm font-inter-regular text-neutral-500 text-center">
               {debouncedQuery.trim()
@@ -327,6 +325,6 @@ export default function SearchScreen({ navigation }: { navigation: any }) {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

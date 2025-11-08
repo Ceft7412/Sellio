@@ -16,6 +16,7 @@ import { ArrowLeftOutlineIcon } from "../../components/icons/outline/arrow-left-
 import { useConversations } from "../../hooks/useMessages";
 import { ChatRegularIcon } from "../../components/icons/outline/chat-outline";
 import { formatMessageTime } from "../../utils/dateHelpers";
+import { CheckmarkCircleRegularIcon } from "../../components/icons/outline/check-mark-outline";
 
 // Types
 interface Conversation {
@@ -226,11 +227,7 @@ const ConversationItem: React.FC<{
               {conversation.user.name}
             </Text>
             {conversation.user.verified && (
-              <View className="bg-success-100 px-1.5 py-0.5 rounded-full">
-                <Text className="text-[10px] font-inter-semiBold text-success-700">
-                  ✓
-                </Text>
-              </View>
+              <CheckmarkCircleRegularIcon color="#10B981" size={18} />
             )}
           </View>
           <Text className="text-xs font-inter-regular text-neutral-500 ml-2">
@@ -346,28 +343,8 @@ export default function ConversationsScreen({ navigation }: any) {
     } as never);
   };
 
-  const handleSearchFocus = () => {
-    // TODO: Navigate to search screen if needed
-  };
-
-  // Helper function to format timestamp
-  const formatTimestamp = (timestamp: string): string => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInMinutes = Math.floor(diffInMs / 60000);
-    const diffInHours = Math.floor(diffInMs / 3600000);
-    const diffInDays = Math.floor(diffInMs / 86400000);
-
-    if (diffInMinutes < 1) return "Just now";
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    return date.toLocaleDateString();
-  };
-
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       {/* Header */}
       <View className="px-6 py-4 border-b border-neutral-100">
         <View className="flex-row items-center justify-between mb-4">
@@ -403,7 +380,6 @@ export default function ConversationsScreen({ navigation }: any) {
             placeholderTextColor="#9CA3AF"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            onFocus={handleSearchFocus}
           />
         </View>
       </View>
@@ -476,6 +452,6 @@ export default function ConversationsScreen({ navigation }: any) {
           )}
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }

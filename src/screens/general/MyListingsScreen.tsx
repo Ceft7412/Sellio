@@ -94,7 +94,7 @@ export default function MyListingsScreen({ navigation }: { navigation: any }) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-neutral-50">
       {/* Header */}
       <View className="bg-white px-4 pt-4 border-b border-neutral-100">
         <View className="flex-row items-center mb-4">
@@ -173,6 +173,6 @@ export default function MyListingsScreen({ navigation }: { navigation: any }) {
       >
         {renderTabContent()}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
