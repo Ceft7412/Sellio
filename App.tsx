@@ -13,9 +13,9 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useEffect } from "react";
 import { useAuthStore } from "./src/store/authStore";
 import { QueryProvider } from "./src/providers/QueryProvider";
+import MainTabs from "./src/screens/tabs/MainTabs";
 import { SocketProvider } from "./src/providers/SocketProvider";
 import GeneralStack from "./src/screens/general/GeneralLayout";
-import MainTabs from "./src/screens/tabs/MainTabs";
 import AuthStack from "./src/screens/auth/AuthLayout";
 
 const Stack = createNativeStackNavigator();

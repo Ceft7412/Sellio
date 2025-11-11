@@ -14,6 +14,7 @@ import { SearchRegularIcon } from "../../components/icons/outline/search-outline
 import { LocationRegularIcon } from "../../components/icons/outline/location-outline";
 import { useQuery } from "@tanstack/react-query";
 import { productsAPI } from "../../constants/axios";
+import { CheckmarkCircleRegularIcon } from "../../components/icons/outline/check-mark-outline";
 
 interface Product {
   id: string;
@@ -125,11 +126,7 @@ const ProductCard: React.FC<{ product: Product; onPress: () => void }> = ({
                 {product.seller.displayName}
               </Text>
               {product.seller.verified && (
-                <View className="bg-primary-50 px-1.5 py-0.5 rounded-full">
-                  <Text className="text-[10px] font-inter-semiBold text-primary-500">
-                    ✓
-                  </Text>
-                </View>
+                <CheckmarkCircleRegularIcon color="#10B981" size={18} />
               )}
             </View>
           </View>

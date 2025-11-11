@@ -6,7 +6,7 @@ export interface Product {
   title: string;
   price: number;
   coverImage: string;
-  location:string;
+  location: string;
   category: string;
   saleType: string;
   seller: {
@@ -14,7 +14,6 @@ export interface Product {
     name: string;
     avatar: string;
     verified: boolean;
-
   };
 }
 
@@ -42,7 +41,6 @@ export const useProducts = (params?: ProductsParams) => {
     queryFn: async () => {
       const response = await productsAPI.getAll(params);
       const data: ProductsResponse = response.data;
-
 
       // Map backend data to frontend interface
       return data.products.map((prod: any) => ({
@@ -175,8 +173,12 @@ export const useUserFavorites = () => {
         id: favorite.product.id,
         title: favorite.product.title,
         price: parseFloat(favorite.product.price),
-        coverImage: favorite.product.coverImage || "https://via.placeholder.com/400",
-        category: favorite.product.subCategory?.name || favorite.product.category?.name || "Unknown",
+        coverImage:
+          favorite.product.coverImage || "https://via.placeholder.com/400",
+        category:
+          favorite.product.subCategory?.name ||
+          favorite.product.category?.name ||
+          "Unknown",
         location: favorite.product.location || "Unknown",
         saleType: favorite.product.saleType || "Unknown",
         seller: {

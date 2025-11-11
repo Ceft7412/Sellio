@@ -13,6 +13,7 @@ import { ChevronLeftRegularIcon } from "../../components/icons/outline/chevron-l
 import { LocationRegularIcon } from "../../components/icons/outline/location-outline";
 import { useProducts } from "../../hooks/useProducts";
 import { BoxRegularIcon } from "../../components/icons/outline/box-outline";
+import { CheckmarkCircleRegularIcon } from "../../components/icons/outline/check-mark-outline";
 
 interface Product {
   id: string;
@@ -124,11 +125,7 @@ const ProductCard: React.FC<{ product: Product; onPress: () => void }> = ({
                 {product.seller.name}
               </Text>
               {product.seller.verified && (
-                <View className="bg-primary-50 px-1.5 py-0.5 rounded-full">
-                  <Text className="text-[10px] font-inter-semiBold text-primary-500">
-                    ✓
-                  </Text>
-                </View>
+                <CheckmarkCircleRegularIcon color="#10B981" size={18} />
               )}
             </View>
           </View>
