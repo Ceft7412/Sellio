@@ -79,6 +79,7 @@ export default function ChatScreen({
   const [completionModalVisible, setCompletionModalVisible] = useState(false);
   const [completionData, setCompletionData] = useState(null);
 
+  const scrollViewRef = useRef<ScrollView>(null);
   // Fetch conversation data
   const {
     data: conversationData,
@@ -94,6 +95,10 @@ export default function ChatScreen({
     error: messagesError,
     refetch: refetchMessages,
   } = useMessages(conversationId);
+
+  useEffect(() => {
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  }, [messagesData]);
 
   // Mark messages as read mutation
   const markAsReadMutation = useMarkMessagesAsRead();
@@ -523,7 +528,7 @@ export default function ChatScreen({
       <KeyboardAvoidingView
         behavior="padding"
         className="flex-1"
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={60}
       >
         {/* Header with optional offer, buy, bid, and transaction details */}
         <ChatHeader
@@ -578,6 +583,7 @@ export default function ChatScreen({
 
         {/* Messages */}
         <ScrollView
+          ref={scrollViewRef}
           className="flex-1 px-4 pt-4"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{

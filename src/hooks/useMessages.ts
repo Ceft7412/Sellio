@@ -40,7 +40,13 @@ export interface Conversation {
   buy?: {
     id: string;
     amount: string;
-    status: "pending" | "confirmed_pending_meetup" | "cancelled_by_buyer" | "cancelled_by_seller" | "expired" | "completed";
+    status:
+      | "pending"
+      | "confirmed_pending_meetup"
+      | "cancelled_by_buyer"
+      | "cancelled_by_seller"
+      | "expired"
+      | "completed";
     buyerId: string;
     sellerId: string;
   } | null;
@@ -179,9 +185,10 @@ export const useUnreadMessagesCount = () => {
     if (!socket) return;
 
     // Listen for new messages
-    const handleNewMessage = () => {
+    const handleNewMessage = (conversationId: string) => {
       // Invalidate conversations to refetch and update unread count
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
     };
 
     // Listen for messages being marked as read
@@ -190,7 +197,9 @@ export const useUnreadMessagesCount = () => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     };
 
-    socket.on("new_message", handleNewMessage);
+    socket.on("new_message", (data: any) =>
+      handleNewMessage(data.conversationId as string)
+    );
     socket.on("messages_read", handleMessagesRead);
 
     return () => {

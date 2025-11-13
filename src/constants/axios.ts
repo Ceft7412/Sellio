@@ -1,5 +1,6 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
+import { useAuthStore } from "../store/authStore";
 
 // Get API base URL and API key from environment variables
 const API_BASE_URL =
@@ -49,9 +50,12 @@ axiosInstance.interceptors.response.use(
       // Handle specific status codes
       switch (status) {
         case 401:
-          // Unauthorized - clear token and redirect to login
-          await SecureStore.deleteItemAsync("authToken");
-          // You can dispatch a logout action o r navigate to login here
+          try {
+            const { logout } = useAuthStore();
+            await logout();
+          } catch (error) {
+            throw error;
+          }
           break;
 
         case 403:

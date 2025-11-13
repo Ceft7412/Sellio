@@ -17,6 +17,7 @@ import MainTabs from "./src/screens/tabs/MainTabs";
 import { SocketProvider } from "./src/providers/SocketProvider";
 import GeneralStack from "./src/screens/general/GeneralLayout";
 import AuthStack from "./src/screens/auth/AuthLayout";
+import { useCheckForUpdates } from "./src/hooks/useCheckForUpdates";
 
 const Stack = createNativeStackNavigator();
 
@@ -32,8 +33,11 @@ export default function App() {
     Inter_700Bold,
   });
 
+  useCheckForUpdates();
+
   useEffect(() => {
     if (error) throw error;
+
     // Configure Google Sign In
     GoogleSignin.configure({
       webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
